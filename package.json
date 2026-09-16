@@ -1,0 +1,17 @@
+{
+  "name": "cais-institucional",
+  "version": "1.0.0",
+  "description": "Website institucional da Cais Investimentos",
+  "scripts": {
+    "dev": "npx serve -l 3000 .",
+    "start": "npx serve -l 3000 .",
+    "preview": "python3 -m http.server 3000"
+  },
+  "keywords": [
+    "cais",
+    "investimentos",
+    "institucional"
+  ],
+  "author": "",
+  "license": "ISC"
+}
