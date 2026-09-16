@@ -1,0 +1,13 @@
+# Ignore node_modules and dev dependencies
+node_modules/
+.git/
+.github/
+.wrangler/
+.vscode/
+.idea/
+package.json
+package-lock.json
+README.md
+*.log
+.env
+.env.*
