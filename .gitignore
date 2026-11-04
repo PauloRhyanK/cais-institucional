@@ -15,3 +15,7 @@ Thumbs.db
 # Build output
 dist/
 build/
+
+# Brand Manual & Large Assets
+CAIS_Manual-da-Marca.pdf
+*.sql

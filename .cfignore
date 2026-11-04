@@ -11,3 +11,5 @@ README.md
 *.log
 .env
 .env.*
+CAIS_Manual-da-Marca.pdf
+*.sql
