@@ -130,7 +130,7 @@
 
     try {
       var res = await fetch(
-        supabaseUrl + "/rest/v1/evento_offshore_acesso?select=dados_evento",
+        supabaseUrl + "/rest/v1/evento_offshore_acesso?select=dados_evento,convidado_nome",
         {
           method: "GET",
           headers: {
@@ -160,6 +160,19 @@
       activeInviteToken = candidate;
       renderEventDetails(rows[0].dados_evento);
 
+      // Aplica personalização se o token for nominal ou se houver ?nome= na URL
+      var dbNome = rows[0].convidado_nome;
+      var urlNome = "";
+      try {
+        var p = new URLSearchParams(window.location.search);
+        urlNome = p.get("nome") || "";
+      } catch (_) {}
+
+      var targetNome = (dbNome && dbNome.trim()) || (urlNome && urlNome.trim()) || "";
+      if (targetNome) {
+        applyPersonalization(targetNome);
+      }
+
       if (gateLoading) gateLoading.hidden = true;
       if (gateDenied) gateDenied.hidden = true;
       if (privateContent) privateContent.hidden = false;
@@ -170,14 +183,34 @@
     }
   }
 
-  // Pré-preenchimento opcional via parâmetro ?nome= no link do WhatsApp
-  try {
-    var params = new URLSearchParams(window.location.search);
-    var nomeParam = params.get("nome");
-    if (nomeParam && !inputNome.value) {
-      inputNome.value = nomeParam.trim();
+  function applyPersonalization(rawNome) {
+    var trimmedNome = String(rawNome || "").trim();
+    if (!trimmedNome) return;
+
+    if (!inputNome.value) {
+      inputNome.value = trimmedNome;
     }
-  } catch (_) {}
+    var vipBadge = document.getElementById("vip-badge");
+    var vipName = document.getElementById("vip-name");
+    var heroEyebrow = document.getElementById("hero-eyebrow");
+    var formTitle = document.getElementById("form-card-title");
+    var formSubtitle = document.querySelector(".form-subtitle");
+
+    if (vipBadge && vipName) {
+      vipName.textContent = trimmedNome;
+      vipBadge.hidden = false;
+    }
+    if (heroEyebrow) {
+      heroEyebrow.textContent = "Encontro Fechado · Convite Nominal";
+    }
+    if (formTitle) {
+      var firstName = trimmedNome.split(" ")[0];
+      formTitle.textContent = "Olá, " + firstName + ". Confirme sua presença";
+    }
+    if (formSubtitle) {
+      formSubtitle.textContent = "Credenciamento nominal · Vagas limitadas";
+    }
+  }
 
   verifyAccessGate();
 

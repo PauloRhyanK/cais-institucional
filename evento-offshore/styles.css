@@ -257,6 +257,35 @@ body {
   flex-shrink: 0;
 }
 
+/* Badge VIP de convite nominal */
+.vip-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(0, 43, 73, 0.45);
+  border: 1px solid var(--ouro-soft-border);
+  font-size: 0.8125rem;
+  color: var(--branco);
+  width: fit-content;
+  line-height: 1.3;
+}
+
+.vip-badge strong {
+  color: var(--ouro-suave);
+  font-weight: 600;
+}
+
+.vip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--ouro-suave);
+  box-shadow: 0 0 6px rgba(217, 189, 126, 0.6);
+  flex-shrink: 0;
+}
+
 /* Hero enxuto com hierarquia tipográfica oficial (Manual pág. 18) */
 .hero {
   display: flex;
