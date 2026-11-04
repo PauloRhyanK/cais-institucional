@@ -190,25 +190,10 @@
     if (!inputNome.value) {
       inputNome.value = trimmedNome;
     }
-    var vipBadge = document.getElementById("vip-badge");
-    var vipName = document.getElementById("vip-name");
-    var heroEyebrow = document.getElementById("hero-eyebrow");
     var formTitle = document.getElementById("form-card-title");
-    var formSubtitle = document.querySelector(".form-subtitle");
-
-    if (vipBadge && vipName) {
-      vipName.textContent = trimmedNome;
-      vipBadge.hidden = false;
-    }
-    if (heroEyebrow) {
-      heroEyebrow.textContent = "Encontro Fechado · Convite Nominal";
-    }
     if (formTitle) {
       var firstName = trimmedNome.split(" ")[0];
       formTitle.textContent = "Olá, " + firstName + ". Confirme sua presença";
-    }
-    if (formSubtitle) {
-      formSubtitle.textContent = "Credenciamento nominal · Vagas limitadas";
     }
   }
 
