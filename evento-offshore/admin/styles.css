@@ -61,6 +61,10 @@
   padding: 0;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 body {
   min-height: 100vh;
   min-height: 100dvh;
@@ -542,6 +546,10 @@ body::before {
   justify-content: center;
   padding: 20px;
   z-index: 999;
+}
+
+.modal-backdrop[hidden] {
+  display: none !important;
 }
 
 .modal-card {

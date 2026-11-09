@@ -328,6 +328,22 @@
     });
   }
 
+  if (deleteModal) {
+    deleteModal.addEventListener("click", function (e) {
+      if (e.target === deleteModal) {
+        pendingDeleteId = null;
+        deleteModal.hidden = true;
+      }
+    });
+  }
+
+  window.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && deleteModal && !deleteModal.hidden) {
+      pendingDeleteId = null;
+      deleteModal.hidden = true;
+    }
+  });
+
   if (deleteConfirmBtn) {
     deleteConfirmBtn.addEventListener("click", async function () {
       if (!pendingDeleteId) return;
