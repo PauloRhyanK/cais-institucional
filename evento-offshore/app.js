@@ -27,6 +27,12 @@
   var confirmVenue = document.getElementById("confirm-venue");
   var calendarBtn = document.getElementById("add-calendar-btn");
 
+  // Configurações padrão resilientes (evita falhas se config.js for bloqueado por ad-blocker)
+  var DEFAULT_SUPABASE_URL = "https://laukfwrsdvchozgicjxm.supabase.co";
+  var DEFAULT_SUPABASE_KEY =
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhdWtmd3JzZHZjaG96Z2ljanhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM4MTc0MDEsImV4cCI6MjEwOTM5MzQwMX0.YL1UZkZlPFjWlpJkMUZjW-y7xU4c-D1KXYtQIiFkzMo";
+  var DEFAULT_SUPABASE_TABLE = "evento_offshore_confirmacoes";
+
   // ---------------------------------------------------------------------------
   // 1. Personalização opcional via query param (?nome=...)
   // ---------------------------------------------------------------------------
@@ -311,10 +317,16 @@
   // ---------------------------------------------------------------------------
   async function persistLead(payload) {
     var cfg = window.CAIS_FORM_CONFIG || {};
-    var supabaseUrl = String(cfg.SUPABASE_URL || "").trim().replace(/\/+$/, "");
-    var supabaseKey = String(cfg.SUPABASE_PUBLISHABLE_KEY || "").trim();
-    var table = String(cfg.SUPABASE_TABLE || "evento_offshore_confirmacoes").trim();
+    var supabaseUrl = String(cfg.SUPABASE_URL || DEFAULT_SUPABASE_URL).trim().replace(/\/+$/, "");
+    var supabaseKey = String(
+      cfg.SUPABASE_ANON_KEY || cfg.SUPABASE_PUBLISHABLE_KEY || DEFAULT_SUPABASE_KEY
+    ).trim();
+    var table = String(cfg.SUPABASE_TABLE || DEFAULT_SUPABASE_TABLE).trim();
     var webhookUrl = String(cfg.WEBHOOK_URL || "").trim();
+
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error("Configuração do formulário indisponível no momento.");
+    }
 
     var endpoint = supabaseUrl + "/rest/v1/" + encodeURIComponent(table);
     var response = await fetch(endpoint, {
@@ -427,9 +439,20 @@
       confirmView.hidden = false;
       confirmView.scrollIntoView({ behavior: "smooth", block: "nearest" });
     } catch (err) {
-      formAlert.textContent =
-        (err && err.message) ||
-        "Não foi possível registrar sua presença agora. Tente novamente em instantes.";
+      var rawMsg = (err && err.message) || "";
+      var friendlyMsg =
+        "Não foi possível registrar sua presença agora. Verifique sua conexão e tente novamente.";
+
+      if (
+        rawMsg &&
+        rawMsg !== "Load failed" &&
+        rawMsg !== "Failed to fetch" &&
+        !/^NetworkError/i.test(rawMsg)
+      ) {
+        friendlyMsg = rawMsg;
+      }
+
+      formAlert.textContent = friendlyMsg;
       formAlert.hidden = false;
     } finally {
       setSubmitting(false);
