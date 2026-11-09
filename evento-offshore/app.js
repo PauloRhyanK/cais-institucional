@@ -1,11 +1,6 @@
 (function () {
   "use strict";
 
-  var gateLoading = document.getElementById("gate-loading");
-  var gateDenied = document.getElementById("gate-denied");
-  var gateMessage = document.getElementById("gate-message");
-  var privateContent = document.getElementById("private-content");
-
   var form = document.getElementById("rsvp-form");
   if (!form) return;
 
@@ -32,157 +27,9 @@
   var confirmVenue = document.getElementById("confirm-venue");
   var calendarBtn = document.getElementById("add-calendar-btn");
 
-  var activeInviteToken = "";
-  var unlockedEventData = null;
-  var SESSION_TOKEN_KEY = "cais_offshore_invite_token";
-
   // ---------------------------------------------------------------------------
-  // 1. Controle de Acesso Privado (validado por SHA-256 + RLS no Supabase)
+  // 1. Personalização opcional via query param (?nome=...)
   // ---------------------------------------------------------------------------
-  function resolveCandidateToken() {
-    try {
-      var params = new URLSearchParams(window.location.search);
-      var fromUrl =
-        params.get("c") || params.get("convite") || params.get("token") || "";
-      if (fromUrl && fromUrl.trim()) {
-        var clean = fromUrl.trim();
-        try {
-          sessionStorage.setItem(SESSION_TOKEN_KEY, clean);
-        } catch (_) {}
-        return clean;
-      }
-      var fromSession = sessionStorage.getItem(SESSION_TOKEN_KEY) || "";
-      return fromSession.trim();
-    } catch (_) {
-      return "";
-    }
-  }
-
-  function showDenied(customMsg) {
-    if (customMsg && gateMessage) {
-      gateMessage.textContent = customMsg;
-    }
-    if (gateLoading) gateLoading.hidden = true;
-    if (privateContent) privateContent.hidden = true;
-    if (gateDenied) gateDenied.hidden = false;
-  }
-
-  function renderEventDetails(ev) {
-    unlockedEventData = ev || {};
-
-    var pillData = document.getElementById("pill-data");
-    var pillLocal = document.getElementById("pill-local");
-    var speakersList = document.getElementById("speakers-list");
-    var specialGuest = document.getElementById("special-guest");
-    var locationTitle = document.getElementById("location-title");
-    var locationAddress = document.getElementById("location-address");
-    var mapLink = document.getElementById("map-link");
-
-    if (pillData) pillData.textContent = ev.data_curta || "";
-    if (pillLocal) pillLocal.textContent = ev.local_curto || "";
-    if (confirmDate) confirmDate.textContent = ev.data_confirmacao || ev.data_extenso || "";
-    if (confirmVenue) confirmVenue.textContent = ev.local_completo || "";
-
-    if (speakersList && Array.isArray(ev.conducao)) {
-      speakersList.innerHTML = "";
-      ev.conducao.forEach(function (person) {
-        var li = document.createElement("li");
-        var pName = document.createElement("p");
-        pName.className = "speaker-name";
-        pName.textContent = person.nome || "";
-        var pRole = document.createElement("p");
-        pRole.className = "speaker-role";
-        pRole.textContent = person.cargo || "";
-        li.appendChild(pName);
-        li.appendChild(pRole);
-        speakersList.appendChild(li);
-      });
-    }
-
-    if (specialGuest) specialGuest.textContent = ev.presenca_especial || "";
-    if (locationTitle) locationTitle.textContent = ev.data_extenso || "";
-    if (locationAddress) {
-      locationAddress.innerHTML =
-        escapeHtml(ev.local_nome || "") +
-        "<br />" +
-        escapeHtml(ev.local_endereco || "");
-    }
-    if (mapLink && ev.maps_url) {
-      mapLink.href = ev.maps_url;
-    }
-  }
-
-  async function verifyAccessGate() {
-    var candidate = resolveCandidateToken();
-    if (!candidate) {
-      showDenied();
-      return;
-    }
-
-    var cfg = window.CAIS_FORM_CONFIG || {};
-    var supabaseUrl = String(cfg.SUPABASE_URL || "").trim().replace(/\/+$/, "");
-    var supabaseKey = String(cfg.SUPABASE_PUBLISHABLE_KEY || "").trim();
-
-    if (!supabaseUrl || !supabaseKey) {
-      showDenied("Configuração de acesso indisponível no momento.");
-      return;
-    }
-
-    try {
-      var res = await fetch(
-        supabaseUrl + "/rest/v1/evento_offshore_acesso?select=dados_evento,convidado_nome",
-        {
-          method: "GET",
-          headers: {
-            apikey: supabaseKey,
-            Authorization: "Bearer " + supabaseKey,
-            "x-invite-token": candidate
-          }
-        }
-      );
-
-      if (!res.ok) {
-        showDenied();
-        return;
-      }
-
-      var rows = await res.json();
-      if (!Array.isArray(rows) || rows.length === 0 || !rows[0].dados_evento) {
-        try {
-          sessionStorage.removeItem(SESSION_TOKEN_KEY);
-        } catch (_) {}
-        showDenied(
-          "Este link de convite é inválido ou foi desativado. Solicite o link atualizado diretamente à equipe da Cais Investimentos."
-        );
-        return;
-      }
-
-      activeInviteToken = candidate;
-      renderEventDetails(rows[0].dados_evento);
-
-      // Aplica personalização se o token for nominal ou se houver ?nome= na URL
-      var dbNome = rows[0].convidado_nome;
-      var urlNome = "";
-      try {
-        var p = new URLSearchParams(window.location.search);
-        urlNome = p.get("nome") || "";
-      } catch (_) {}
-
-      var targetNome = (dbNome && dbNome.trim()) || (urlNome && urlNome.trim()) || "";
-      if (targetNome) {
-        applyPersonalization(targetNome);
-      }
-
-      if (gateLoading) gateLoading.hidden = true;
-      if (gateDenied) gateDenied.hidden = true;
-      if (privateContent) privateContent.hidden = false;
-    } catch (_) {
-      showDenied(
-        "Não foi possível validar o seu convite agora. Verifique sua conexão com a internet e recarregue a página."
-      );
-    }
-  }
-
   function applyPersonalization(rawNome) {
     var trimmedNome = String(rawNome || "").trim();
     if (!trimmedNome) return;
@@ -197,7 +44,13 @@
     }
   }
 
-  verifyAccessGate();
+  try {
+    var params = new URLSearchParams(window.location.search);
+    var urlNome = params.get("nome") || params.get("n") || "";
+    if (urlNome && urlNome.trim()) {
+      applyPersonalization(urlNome.trim());
+    }
+  } catch (_) {}
 
   // ---------------------------------------------------------------------------
   // 2. Normalização e máscaras amigáveis a Backspace e Autofill (iOS / Android)
@@ -454,13 +307,9 @@
   });
 
   // ---------------------------------------------------------------------------
-  // 4. Envio ao Banco de Dados (exige `x-invite-token` validado na política RLS)
+  // 4. Envio ao Banco de Dados (Supabase REST API)
   // ---------------------------------------------------------------------------
   async function persistLead(payload) {
-    if (!activeInviteToken) {
-      throw new Error("Sessão de convite inválida. Acesse novamente pelo link enviado.");
-    }
-
     var cfg = window.CAIS_FORM_CONFIG || {};
     var supabaseUrl = String(cfg.SUPABASE_URL || "").trim().replace(/\/+$/, "");
     var supabaseKey = String(cfg.SUPABASE_PUBLISHABLE_KEY || "").trim();
@@ -474,7 +323,6 @@
         "Content-Type": "application/json",
         apikey: supabaseKey,
         Authorization: "Bearer " + supabaseKey,
-        "x-invite-token": activeInviteToken,
         Prefer: "return=minimal"
       },
       body: JSON.stringify(payload)
@@ -601,8 +449,7 @@
   // ---------------------------------------------------------------------------
   if (calendarBtn) {
     calendarBtn.addEventListener("click", function () {
-      var ev = unlockedEventData || {};
-      var loc = (ev.local_completo || "Enjoy Work Coworking, Vila Velha - ES").replace(/,/g, "\\,");
+      var loc = "Enjoy Work Coworking, Alça da Terceira Ponte, 245, Praia da Costa, Vila Velha, ES".replace(/,/g, "\\,");
       var icsLines = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",

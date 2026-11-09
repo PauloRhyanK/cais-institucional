@@ -11,16 +11,15 @@
   <title>Evento de Offshore — Cais Investimentos</title>
   <meta
     name="description"
-    content="Convite pessoal e exclusivo para convidados da Cais Investimentos."
+    content="Encontro da Cais Investimentos sobre proteção e diversificação patrimonial no exterior."
   />
 
-  <!-- Open Graph / WhatsApp Preview discreto (sem expor local/horário publicamente) -->
   <meta property="og:type" content="website" />
   <meta property="og:locale" content="pt_BR" />
   <meta property="og:title" content="Evento de Offshore — Cais Investimentos" />
   <meta
     property="og:description"
-    content="Convite pessoal para encontro fechado da Cais Investimentos."
+    content="Encontro da Cais Investimentos sobre proteção e diversificação patrimonial no exterior."
   />
 
   <script>
@@ -91,39 +90,13 @@
       </div>
     </header>
 
-    <!-- Estado de validação do link privado -->
-    <div id="gate-loading" class="gate-loading" role="status" aria-live="polite">
-      <span class="gate-spinner" aria-hidden="true"></span>
-      <span>Validando convite pessoal...</span>
-    </div>
-
-    <!-- Tela de Acesso Restrito (exibida para quem acessa sem token válido) -->
-    <section id="gate-denied" class="gate-card" aria-labelledby="gate-title" hidden>
-      <div class="gate-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-        </svg>
-      </div>
-      <p class="eyebrow">Acesso Reservado</p>
-      <h1 id="gate-title" class="gate-title">
-        Encontro exclusivo
-        <em>para convidados</em>
+    <section class="hero">
+      <p class="eyebrow">Evento Offshore · Encontro Fechado</p>
+      <h1 class="hero-title">
+        Proteção e diversificação
+        <em>patrimonial no exterior</em>
       </h1>
-      <p id="gate-message" class="gate-text">
-        Este credenciamento é restrito e pode ser acessado apenas por meio do link pessoal enviado diretamente pela equipe da Cais Investimentos.
-      </p>
     </section>
-
-    <!-- Conteúdo privado do convite (liberado somente após validação no servidor) -->
-    <div id="private-content" style="display: contents;" hidden>
-      <section class="hero">
-        <p class="eyebrow">Evento Offshore · Encontro Fechado</p>
-        <h1 class="hero-title">
-          Proteção e diversificação
-          <em>patrimonial no exterior</em>
-        </h1>
-      </section>
 
       <!-- Cartão do Formulário (apenas Nome, Telefone, E-mail, CPF) -->
       <section class="form-card" aria-labelledby="form-card-title">
@@ -225,8 +198,8 @@
           </p>
 
           <div class="confirm-summary">
-            <strong id="confirm-date"></strong>
-            <span id="confirm-venue"></span>
+            <strong id="confirm-date">Quinta-feira, 12 de novembro, às 19h</strong>
+            <span id="confirm-venue">Enjoy Work Coworking · Alça da Terceira Ponte, 245, Praia da Costa, Vila Velha, ES</span>
           </div>
 
           <button id="add-calendar-btn" type="button" class="secondary-btn">
@@ -245,20 +218,32 @@
       <section class="event-details" aria-label="Informações do encontro">
         <div class="detail-block">
           <h3 class="detail-heading">Quem conduz a conversa</h3>
-          <ul id="speakers-list" class="speakers-list"></ul>
-          <p id="special-guest" class="special-guest"></p>
+          <ul id="speakers-list" class="speakers-list">
+            <li>
+              <p class="speaker-name">Anna Beatriz Becker</p>
+              <p class="speaker-role">Advogada e Wealth Planning da Necton Investimentos</p>
+            </li>
+            <li>
+              <p class="speaker-name">Eduardo Brandão</p>
+              <p class="speaker-role">Sócio-fundador da Cais Investimentos</p>
+            </li>
+          </ul>
+          <p id="special-guest" class="special-guest">Com presença especial de profissionais do BTG Pactual.</p>
         </div>
 
         <div class="detail-block">
           <h3 class="detail-heading">Local e horário</h3>
           <div>
-            <p id="location-title" class="location-title"></p>
-            <p id="location-address" class="location-address"></p>
+            <p id="location-title" class="location-title">Quinta-feira, 12 de novembro, às 19h</p>
+            <p id="location-address" class="location-address">
+              Enjoy Work Coworking<br />
+              Alça da Terceira Ponte, 245, Praia da Costa, Vila Velha, ES
+            </p>
           </div>
           <a
             id="map-link"
             class="map-link"
-            href="#"
+            href="https://maps.google.com/?q=Enjoy+Work+Coworking+Alca+da+Terceira+Ponte+245+Praia+da+Costa+Vila+Velha+ES"
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -266,7 +251,6 @@
           </a>
         </div>
       </section>
-    </div>
   </main>
 
   <script src="./config.js"></script>
