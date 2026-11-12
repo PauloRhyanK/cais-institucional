@@ -120,6 +120,8 @@
   function renderTable(records) {
     filteredRecords = records;
     if (totalCountEl) totalCountEl.textContent = allRecords.length;
+    var printTotalEl = document.getElementById("print-total-count");
+    if (printTotalEl) printTotalEl.textContent = records.length;
 
     if (!tableBody) return;
     tableBody.innerHTML = "";
@@ -434,8 +436,23 @@
   // ---------------------------------------------------------------------------
   // Exportar para PDF (Gera visualização de impressão A4 corporativa da Cais)
   // ---------------------------------------------------------------------------
+  function updatePrintTimestamp() {
+    var tsEl = document.getElementById("print-timestamp");
+    if (tsEl) {
+      var d = new Date();
+      tsEl.textContent =
+        "Emitido em " +
+        d.toLocaleDateString("pt-BR") +
+        " às " +
+        d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    }
+  }
+
+  window.addEventListener("beforeprint", updatePrintTimestamp);
+
   if (exportPdfBtn) {
     exportPdfBtn.addEventListener("click", function () {
+      updatePrintTimestamp();
       window.print();
     });
   }
