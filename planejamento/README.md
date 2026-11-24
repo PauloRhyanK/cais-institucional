@@ -28,7 +28,8 @@ Em `localhost`, o envio é **simulado** e o corpo aparece no console:
 
 ## Arquivos
 
-- `config.js`: endpoints e regras pendentes de decisão (idade mínima/máxima, só Brasil, política de privacidade, consentimento, link inativo).
+- `perguntas.js`: **as perguntas do formulário** (ver "Editar as perguntas").
+- `config.js`: endpoint e regras pendentes de decisão (só Brasil, política de privacidade, consentimento, link inativo).
 - `js/nucleo.js`: regras puras, sem DOM. Roda também no Node e pode ser reaproveitado no backend para validar com as mesmas regras.
 - `js/servicos.js`: verificação do link, envio idempotente e eventos sem dados pessoais.
 - `js/app.js`: fluxo, máscaras de telefone e moeda, linha do tempo e resumo.
@@ -43,7 +44,7 @@ Navegador ──/planejamento/api/*──▶ Worker do site (worker/index.js) �
 ```
 
 - O navegador chama o próprio domínio (`API_BASE = "/planejamento/api"`), sem CORS e sem segredo.
-- O Worker (`worker/index.js`) guarda o segredo, valida de novo com as mesmas regras de `js/nucleo.js`, calcula `horizonte_anos` e `renda_anual_centavos` e monta o `LeadDoSite` com as chaves em ordem alfabética em todos os níveis. Campos vazios são omitidos.
+- O Worker (`worker/index.js`) guarda o segredo, valida de novo com as mesmas regras de `js/nucleo.js`, monta as `respostas` legíveis (com derivados como horizonte e renda anual) e o `LeadDoSite` com as chaves em ordem alfabética em todos os níveis. Campos vazios são omitidos.
   - O Worker **não guarda lead**.
   - O retry é do navegador, com o mesmo `id` e o mesmo corpo.
 - Rotas do Worker:
@@ -73,23 +74,26 @@ npx wrangler secret put FLOWIA_PLANEJAMENTO_TOKEN   # segredo do conector (não 
   - rate limit `LIMITE_ENVIOS`: 10 envios por minuto por IP, com hash.
 - Para desenvolver localmente, crie `.dev.vars` (ignorado pelo git) com as duas variáveis e rode `npm run dev:worker`. A página fica em `http://localhost:8787/planejamento/?api=real`.
 
-### Chaves das alternativas (§7.1 do contrato: enviar ao CRM)
+## Editar as perguntas (sem depender do CAIS V2)
 
-| Campo | Chave | Rótulo |
-|---|---|---|
-| `patrimonio_faixa` | `ate_100k` | Até R$ 100 mil |
-| | `acima_100k_ate_500k` | Acima de R$ 100 mil até R$ 500 mil |
-| | `acima_500k_ate_1m` | Acima de R$ 500 mil até R$ 1 milhão |
-| | `acima_1m_ate_10m` | Acima de R$ 1 milhão até R$ 10 milhões |
-| | `acima_10m` | Acima de R$ 10 milhões |
-| `experiencia_faixa` (provisória, Raul) | `nao_investe` | Ainda não invisto |
-| | `ate_3m` | Até 3 meses |
-| | `acima_3m_ate_12m` | Acima de 3 meses até 12 meses |
-| | `acima_12m` | Acima de 12 meses |
-| `aporte_faixa` | `ate_10` | Até 10% |
-| | `acima_10_ate_20` | Acima de 10% até 20% |
-| | `acima_20_ate_30` | Acima de 20% até 30% |
-| | `acima_30` | Acima de 30% |
+Tudo fica em **`planejamento/perguntas.js`**: ordem, textos, tipo, opções, ícones, regras e mensagens. O site monta as telas a partir desse arquivo, e o Worker valida com ele.
+
+- O CRM recebe a lista `respostas` com pergunta e resposta legíveis, como nas outras campanhas. Por isso, adicionar, editar, reordenar ou tirar perguntas **não exige mudança no CRM**.
+- A identificação (nome, WhatsApp, e-mail) é fixa e fica sempre no fim.
+- Tipos disponíveis: `escolha` (cartões), `idade`, `inteiro`, `moeda` (com "Ainda não sei" opcional) e `texto`. As opções de cada tipo estão documentadas no topo do arquivo.
+- **Exceção:** perguntas com `campo_crm` também viram campo fixo no CRM, para filtros e gráficos. Hoje só o patrimônio (`patrimonio_faixa`) é assim. Se mudar as **chaves** das opções dele, avise o CAIS V2; mudar só os rótulos não exige aviso.
+- Ao mudar perguntas, aumente `versao`. Ela fica registrada em cada lead, então dá para saber qual versão do formulário cada pessoa respondeu.
+- Antes de publicar, rode `npm test`. O teste `perguntas.js: configuração válida` acusa chave repetida, tipo desconhecido, opção sem rótulo e referência a pergunta inexistente.
+
+Chaves do campo fixo `patrimonio_faixa` (combinadas com o CRM):
+
+| Chave | Rótulo |
+|---|---|
+| `ate_100k` | Até R$ 100 mil |
+| `acima_100k_ate_500k` | Acima de R$ 100 mil até R$ 500 mil |
+| `acima_500k_ate_1m` | Acima de R$ 500 mil até R$ 1 milhão |
+| `acima_1m_ate_10m` | Acima de R$ 1 milhão até R$ 10 milhões |
+| `acima_10m` | Acima de R$ 10 milhões |
 
 ## Privacidade
 

@@ -68,112 +68,24 @@
             <path d="M0 -11 L8 0 L0 11 L-8 0 Z" />
           </g>
         </svg>
-        <p class="sobretitulo">Planejamento financeiro</p>
+        <p class="sobretitulo" id="inicio-sobretitulo">Planejamento financeiro</p>
         <h1 class="titulo titulo-inicio" id="t-inicio" tabindex="-1">Quando você pretende viver de renda?</h1>
-        <p class="apoio">Conte um pouco sobre seu momento financeiro e seus planos para o futuro.</p>
+        <p class="apoio" id="inicio-texto">Conte um pouco sobre seu momento financeiro e seus planos para o futuro.</p>
         <button type="button" class="botao" id="comecar">
           Começar
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
         </button>
         <p class="tempo">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
-          Leva cerca de 2 minutos · 7 perguntas
+          <span id="inicio-tempo">Leva cerca de 2 minutos · 7 perguntas</span>
         </p>
       </section>
 
-      <!-- Etapa 1 — Patrimônio -->
-      <section class="tela" data-tela="patrimonio" aria-labelledby="t-patrimonio" hidden>
-        <form class="formulario" novalidate data-etapa="1">
-          <fieldset class="grupo" aria-describedby="a-patrimonio erro-patrimonio">
-            <legend class="titulo" id="t-patrimonio" tabindex="-1">Qual é o seu patrimônio atual?</legend>
-            <p class="apoio" id="a-patrimonio">Considere uma estimativa do seu patrimônio total.</p>
-            <div class="cartoes" data-grupo="patrimonio"></div>
-          </fieldset>
-          <p class="erro" id="erro-patrimonio" role="alert"></p>
-          <button type="submit" class="botao">Continuar</button>
-        </form>
-      </section>
+      <!-- As perguntas são montadas a partir de /planejamento/perguntas.js -->
 
-      <!-- Etapa 2 — Experiência -->
-      <section class="tela" data-tela="experiencia" aria-labelledby="t-experiencia" hidden>
-        <form class="formulario" novalidate data-etapa="2">
-          <fieldset class="grupo" aria-describedby="a-experiencia erro-experiencia">
-            <legend class="titulo" id="t-experiencia" tabindex="-1">Há quanto tempo você investe regularmente?</legend>
-            <p class="apoio" id="a-experiencia">Considere o período em que realiza aportes com frequência.</p>
-            <div class="cartoes" data-grupo="experiencia"></div>
-          </fieldset>
-          <p class="erro" id="erro-experiencia" role="alert"></p>
-          <button type="submit" class="botao">Continuar</button>
-        </form>
-      </section>
-
-      <!-- Etapa 3 — Capacidade de aporte -->
-      <section class="tela" data-tela="aporte" aria-labelledby="t-aporte" hidden>
-        <form class="formulario" novalidate data-etapa="3">
-          <fieldset class="grupo" aria-describedby="a-aporte erro-aporte">
-            <legend class="titulo" id="t-aporte" tabindex="-1">Quanto da sua renda você consegue investir todos os meses?</legend>
-            <p class="apoio" id="a-aporte">Selecione a faixa mais próxima da sua realidade.</p>
-            <div class="cartoes" data-grupo="aporte"></div>
-          </fieldset>
-          <p class="erro" id="erro-aporte" role="alert"></p>
-          <button type="submit" class="botao">Continuar</button>
-        </form>
-      </section>
-
-      <!-- Etapa 4 — Idade atual -->
-      <section class="tela" data-tela="idade_atual" aria-labelledby="t-idade-atual" hidden>
-        <form class="formulario" novalidate data-etapa="4">
-          <h2 class="titulo" id="t-idade-atual" tabindex="-1">Quantos anos você tem?</h2>
-          <div class="campo-numero">
-            <input id="idade-atual" class="entrada-grande" type="text" inputmode="numeric" pattern="[0-9]*"
-              autocomplete="off" enterkeyhint="next" placeholder="Ex.: 30"
-              aria-labelledby="t-idade-atual" aria-describedby="erro-idade-atual regra-idade" />
-            <span class="sufixo" aria-hidden="true">anos</span>
-          </div>
-          <p class="erro" id="erro-idade-atual" role="alert"></p>
-          <p class="nota" id="regra-idade" hidden></p>
-          <button type="submit" class="botao">Continuar</button>
-        </form>
-      </section>
-
-      <!-- Etapa 5 — Idade pretendida -->
-      <section class="tela" data-tela="idade_objetivo" aria-labelledby="t-idade-objetivo" hidden>
-        <form class="formulario" novalidate data-etapa="5">
-          <h2 class="titulo" id="t-idade-objetivo" tabindex="-1">Com qual idade você pretende viver de renda?</h2>
-          <div class="campo-numero">
-            <input id="idade-objetivo" class="entrada-grande" type="text" inputmode="numeric" pattern="[0-9]*"
-              autocomplete="off" enterkeyhint="next" placeholder="Ex.: 50"
-              aria-labelledby="t-idade-objetivo" aria-describedby="erro-idade-objetivo linha-tempo" />
-            <span class="sufixo" aria-hidden="true">anos</span>
-          </div>
-          <p class="erro" id="erro-idade-objetivo" role="alert"></p>
-          <div class="linha-tempo" id="linha-tempo" aria-live="polite" hidden></div>
-          <button type="submit" class="botao">Continuar</button>
-        </form>
-      </section>
-
-      <!-- Etapa 6 — Renda mensal desejada -->
-      <section class="tela" data-tela="renda" aria-labelledby="t-renda" hidden>
-        <form class="formulario" novalidate data-etapa="6">
-          <h2 class="titulo" id="t-renda" tabindex="-1">Quanto você gostaria de receber por mês ao viver de renda?</h2>
-          <div class="campo-moeda" id="campo-renda">
-            <span class="prefixo" aria-hidden="true">R$</span>
-            <input id="renda" class="entrada-grande" type="text" inputmode="decimal" autocomplete="off"
-              enterkeyhint="next" placeholder="15.000,00"
-              aria-labelledby="t-renda" aria-describedby="erro-renda" />
-          </div>
-          <p class="erro" id="erro-renda" role="alert"></p>
-          <button type="button" class="alternar" id="renda-nao-sei" aria-pressed="false">
-            <span class="alternar-marca" aria-hidden="true"></span>
-            Ainda não sei
-          </button>
-          <button type="submit" class="botao">Continuar</button>
-        </form>
-      </section>
-
-      <!-- Etapa 7 — Identificação -->
+      <!-- Identificação (fixa) -->
       <section class="tela" data-tela="identificacao" aria-labelledby="t-identificacao" hidden>
-        <form class="formulario formulario-dados" novalidate data-etapa="7" id="form-dados">
+        <form class="formulario formulario-dados" novalidate id="form-dados">
           <h2 class="titulo" id="t-identificacao" tabindex="-1">Vamos nos conhecer?</h2>
           <p class="apoio">Deixe seus dados para que nossa equipe possa conversar com você sobre seus planos.</p>
 
@@ -249,6 +161,7 @@
   </div>
 
   <script src="/planejamento/config.js"></script>
+  <script src="/planejamento/perguntas.js"></script>
   <script src="/planejamento/vendor/libphonenumber-min.js" defer></script>
   <script src="/planejamento/js/nucleo.js" defer></script>
   <script src="/planejamento/js/servicos.js" defer></script>

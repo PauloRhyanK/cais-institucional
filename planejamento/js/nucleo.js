@@ -12,50 +12,6 @@
   "use strict";
 
   // ------------------------------------------------------------------
-  // Alternativas (chaves estáveis enviadas ao CRM; rótulos só para exibição)
-  // ------------------------------------------------------------------
-  const FAIXAS = {
-    patrimonio: [
-      { chave: "ate_100k", rotulo: "Até R$ 100 mil" },
-      { chave: "acima_100k_ate_500k", rotulo: "Acima de R$ 100 mil até R$ 500 mil" },
-      { chave: "acima_500k_ate_1m", rotulo: "Acima de R$ 500 mil até R$ 1 milhão" },
-      { chave: "acima_1m_ate_10m", rotulo: "Acima de R$ 1 milhão até R$ 10 milhões" },
-      { chave: "acima_10m", rotulo: "Acima de R$ 10 milhões" },
-    ],
-    // Faixas provisórias: confirmar com Raul antes da publicação definitiva.
-    experiencia: [
-      { chave: "nao_investe", rotulo: "Ainda não invisto" },
-      { chave: "ate_3m", rotulo: "Até 3 meses" },
-      { chave: "acima_3m_ate_12m", rotulo: "Acima de 3 meses até 12 meses" },
-      { chave: "acima_12m", rotulo: "Acima de 12 meses" },
-    ],
-    aporte: [
-      { chave: "ate_10", rotulo: "Até 10%" },
-      { chave: "acima_10_ate_20", rotulo: "Acima de 10% até 20%" },
-      { chave: "acima_20_ate_30", rotulo: "Acima de 20% até 30%" },
-      { chave: "acima_30", rotulo: "Acima de 30%" },
-    ],
-  };
-
-  const PERGUNTAS = {
-    patrimonio: "Qual é o seu patrimônio atual?",
-    experiencia: "Há quanto tempo você investe regularmente?",
-    aporte: "Quanto da sua renda você consegue investir todos os meses?",
-    idade_atual: "Quantos anos você tem?",
-    idade_objetivo: "Com qual idade você pretende viver de renda?",
-    renda: "Quanto você gostaria de receber por mês ao viver de renda?",
-  };
-
-  function rotuloDaFaixa(grupo, chave) {
-    const item = (FAIXAS[grupo] || []).find((f) => f.chave === chave);
-    return item ? item.rotulo : null;
-  }
-
-  function faixaValida(grupo, chave) {
-    return rotuloDaFaixa(grupo, chave) !== null;
-  }
-
-  // ------------------------------------------------------------------
   // Texto
   // ------------------------------------------------------------------
   function normalizarEspacos(valor) {
@@ -427,27 +383,190 @@
   }
 
   // ------------------------------------------------------------------
-  // Envio navegador → Worker do site (POST /planejamento/api/envios). O Worker valida de novo
-  // e monta o LeadDoSite do CRM (worker/index.js › montarLead).
-  // Chaves vazias são omitidas; derivados (horizonte, renda anual) e atribuição
-  // são calculados no servidor e no CRM, nunca enviados pelo site.
+  // Perguntas configuráveis (planejamento/perguntas.js)
+  // Valores normalizados por tipo:
+  //   escolha → chave da opção · idade/inteiro → número · texto → string
+  //   moeda   → centavos (inteiro > 0) ou NAO_SEI
   // ------------------------------------------------------------------
-  function montarEnvio(r, ctx) {
+  const NAO_SEI = "nao_sei";
+  const TIPOS = ["escolha", "idade", "inteiro", "moeda", "texto"];
+  const CHAVES_RESERVADAS = ["inicio", "identificacao", "sucesso", "indisponivel", "nome", "telefone", "email", "consentimento", "site"];
+
+  function preencher(modelo, dados) {
+    return String(modelo).replace(/\{(\w+)\}/g, (_, k) => (dados[k] == null ? "" : String(dados[k])));
+  }
+
+  function mensagem(p, nome, padrao, dados) {
+    const m = (p.mensagens && p.mensagens[nome]) || padrao;
+    return preencher(m, { minimo: p.minimo, maximo: p.maximo, ...(dados || {}) });
+  }
+
+  const ERRO_INTEIRO = {
+    decimal: "Informe um número inteiro, sem vírgula ou ponto.",
+    caracteres: "Informe um número inteiro, usando apenas números.",
+  };
+
+  /**
+   * Valida a resposta de uma pergunta.
+   * @param p        definição da pergunta
+   * @param bruto    texto digitado, chave escolhida ou valor já normalizado
+   * @param respostas respostas normalizadas já conhecidas (para `minimoDe`)
+   * @returns {{ok:true, valor:any, vazia?:true} | {ok:false, erro:string}}
+   */
+  function validarResposta(p, bruto, respostas) {
+    const vazio = bruto === undefined || bruto === null || (typeof bruto === "string" && !normalizarEspacos(bruto));
+    if (vazio) {
+      if (p.opcional) return { ok: true, valor: null, vazia: true };
+      const padrao = p.tipo === "escolha" ? "Selecione uma opção para continuar." : "Responda para continuar.";
+      return { ok: false, erro: mensagem(p, "vazio", padrao) };
+    }
+
+    if (p.tipo === "escolha") {
+      const opcao = (p.opcoes || []).find((o) => o.chave === bruto);
+      return opcao ? { ok: true, valor: opcao.chave } : { ok: false, erro: mensagem(p, "vazio", "Selecione uma opção para continuar.") };
+    }
+
+    if (p.tipo === "idade" || p.tipo === "inteiro") {
+      const idade = p.tipo === "idade";
+      const lido = typeof bruto === "number" ? (Number.isInteger(bruto) && bruto >= 0 ? { valor: bruto } : { invalido: "caracteres" }) : lerInteiro(bruto);
+      if (lido.invalido) return { ok: false, erro: (idade ? ERRO_IDADE : ERRO_INTEIRO)[lido.invalido] };
+      if (idade && lido.valor === 0) return { ok: false, erro: ERRO_IDADE.zero };
+      const v = lido.valor;
+      if (p.minimo != null && v < p.minimo) {
+        return { ok: false, erro: mensagem(p, "minimo", idade ? "Informe uma idade de {minimo} anos ou mais." : "Informe um número a partir de {minimo}.") };
+      }
+      if (p.maximo != null && v > p.maximo) {
+        return {
+          ok: false,
+          erro: mensagem(p, "maximo", idade ? "Informe uma idade de até {maximo} anos. Confira se não digitou um número a mais." : "Informe um número de até {maximo}."),
+        };
+      }
+      const referencia = p.minimoDe && respostas ? respostas[p.minimoDe] : null;
+      if (Number.isInteger(referencia) && v < referencia) {
+        return { ok: false, erro: mensagem(p, "minimoDe", "Informe um valor igual ou maior que {referencia}.", { referencia }) };
+      }
+      return { ok: true, valor: v };
+    }
+
+    if (p.tipo === "moeda") {
+      if (bruto === NAO_SEI) {
+        return p.naoSei ? { ok: true, valor: NAO_SEI } : { ok: false, erro: "Informe um valor em reais." };
+      }
+      if (typeof bruto === "number") {
+        return Number.isInteger(bruto) && bruto > 0 && bruto <= MOEDA_MAX_CENTAVOS
+          ? { ok: true, valor: bruto }
+          : { ok: false, erro: "Informe um valor maior que zero." };
+      }
+      const r = validarRenda(bruto, false);
+      if (r.ok) return { ok: true, valor: r.centavos };
+      let erro = r.erro;
+      if (!p.naoSei) erro = erro.replace(/ ?(Se ainda não tem um valor em mente, )?selecione "Ainda não sei"\.?/, "").replace(/ ou $/, ".");
+      else if (p.naoSei !== "Ainda não sei") erro = erro.replace("Ainda não sei", p.naoSei);
+      return { ok: false, erro: mensagem(p, "invalido", erro) };
+    }
+
+    if (p.tipo === "texto") {
+      const v = normalizarEspacos(bruto);
+      const max = p.maximo || 500;
+      if (v.length > max) return { ok: false, erro: mensagem(p, "maximo", `Use até ${max} caracteres.`) };
+      return { ok: true, valor: v };
+    }
+
+    return { ok: false, erro: "Tipo de pergunta desconhecido." };
+  }
+
+  function plural(n, singular, pluralTexto) {
+    return `${n} ${n === 1 ? singular : pluralTexto}`;
+  }
+
+  /** Texto legível de uma resposta normalizada. */
+  function rotuloResposta(p, valor) {
+    if (valor == null) return null;
+    if (p.tipo === "escolha") {
+      const o = (p.opcoes || []).find((x) => x.chave === valor);
+      return o ? o.rotulo : null;
+    }
+    if (p.tipo === "idade") return plural(valor, "ano", "anos");
+    if (p.tipo === "inteiro") return p.sufixo ? `${valor} ${p.sufixo}` : String(valor);
+    if (p.tipo === "moeda") return valor === NAO_SEI ? p.naoSei : formatarMoeda(valor);
+    return String(valor);
+  }
+
+  /**
+   * Pares legíveis (pergunta/resposta) para o CRM e o resumo, na ordem do formulário,
+   * com os derivados: horizonte da linha do tempo e valor anual da moeda.
+   * `destino`: "crm" (todas) ou "resumo" (usa os rótulos curtos `resumo`).
+   */
+  function respostasLegiveis(formulario, respostas, destino) {
+    const saida = [];
+    const resumo = destino === "resumo";
+    for (const p of formulario.perguntas) {
+      const valor = respostas[p.chave];
+      if (valor == null) continue;
+      if (resumo && (p.resumo === false || valor === NAO_SEI)) continue;
+      saida.push({ chave: p.chave, pergunta: resumo ? p.resumo || p.pergunta : p.pergunta, resposta: rotuloResposta(p, valor) });
+      if (p.linhaDoTempo && !(resumo && p.linhaDoTempo.resumo === false)) {
+        const anos = horizonteEmAnos(respostas[p.linhaDoTempo.de], valor);
+        if (anos != null) {
+          const rotulo = p.linhaDoTempo.resumo || "Horizonte";
+          saida.push({ chave: `${p.chave}_horizonte`, pergunta: rotulo, resposta: plural(anos, "ano", "anos") });
+        }
+      }
+      if (p.tipo === "moeda" && p.anual && valor !== NAO_SEI && !resumo) {
+        saida.push({ chave: `${p.chave}_anual`, pergunta: p.anual.resumo || "Valor anual", resposta: formatarMoeda(valor * 12) });
+      }
+    }
+    return saida;
+  }
+
+  /** Erro de configuração em perguntas.js (testado para não publicar formulário quebrado). */
+  function verificarFormulario(formulario) {
+    const problemas = [];
+    const chaves = new Set();
+    if (!formulario || !Array.isArray(formulario.perguntas) || !formulario.perguntas.length) return ["sem perguntas"];
+    if (!/^[a-z0-9][a-z0-9._-]{0,49}$/i.test(formulario.versao || "")) problemas.push("versao inválida");
+    if (formulario.perguntas.length > 25) problemas.push("mais de 25 perguntas (o CRM aceita até 30 respostas, contando derivados)");
+    formulario.perguntas.forEach((p, i) => {
+      const onde = `perguntas[${i}] (${p.chave || "?"})`;
+      if (!/^[a-z][a-z0-9_]{0,39}$/.test(p.chave || "")) problemas.push(`${onde}: chave inválida`);
+      if (chaves.has(p.chave)) problemas.push(`${onde}: chave repetida`);
+      if (CHAVES_RESERVADAS.includes(p.chave)) problemas.push(`${onde}: chave reservada`);
+      chaves.add(p.chave);
+      if (!TIPOS.includes(p.tipo)) problemas.push(`${onde}: tipo desconhecido`);
+      if (!p.pergunta || p.pergunta.length > 300) problemas.push(`${onde}: pergunta vazia ou longa demais`);
+      if (p.tipo === "escolha") {
+        const opcoes = p.opcoes || [];
+        if (opcoes.length < 2) problemas.push(`${onde}: escolha precisa de ao menos 2 opções`);
+        const vistas = new Set();
+        for (const o of opcoes) {
+          if (!/^[a-z0-9_]{1,60}$/.test(o.chave || "")) problemas.push(`${onde}: opção com chave inválida`);
+          if (vistas.has(o.chave)) problemas.push(`${onde}: opção repetida ${o.chave}`);
+          vistas.add(o.chave);
+          if (!o.rotulo) problemas.push(`${onde}: opção sem rótulo`);
+        }
+      }
+      for (const ref of [p.minimoDe, p.linhaDoTempo && p.linhaDoTempo.de].filter(Boolean)) {
+        const idx = formulario.perguntas.findIndex((q) => q.chave === ref);
+        if (idx === -1 || idx >= i) problemas.push(`${onde}: referência a "${ref}" precisa ser uma pergunta anterior`);
+      }
+    });
+    return problemas;
+  }
+
+  // ------------------------------------------------------------------
+  // Envio navegador → Worker do site (POST /planejamento/api/envios).
+  // O navegador manda só os valores normalizados por chave; o Worker valida de novo
+  // com o mesmo perguntas.js e monta o lead do CRM (worker/index.js › montarLead).
+  // ------------------------------------------------------------------
+  function montarEnvio(dados, ctx) {
     const corpo = { id: ctx.id };
     if (ctx.linkCodigo) corpo.link = ctx.linkCodigo;
+    corpo.pessoa = { nome: dados.nome, telefone: dados.telefone_e164 };
+    if (dados.email) corpo.pessoa.email = dados.email;
 
-    corpo.pessoa = { nome: r.nome, telefone: r.telefone_e164 };
-    if (r.email) corpo.pessoa.email = r.email;
-
-    corpo.respostas = {
-      patrimonio_faixa: r.patrimonio_faixa,
-      experiencia_faixa: r.experiencia_faixa,
-      aporte_faixa: r.aporte_faixa,
-      idade_atual: r.idade_atual,
-      idade_objetivo: r.idade_objetivo,
-    };
-    if (r.renda_desejada_indefinida) corpo.respostas.renda_desejada_indefinida = true;
-    else corpo.respostas.renda_desejada_centavos = r.renda_desejada_centavos;
+    const respostas = {};
+    for (const [chave, valor] of Object.entries(dados.respostas || {})) if (valor != null) respostas[chave] = valor;
+    corpo.respostas = respostas;
 
     const utm = {};
     for (const chave of UTM_CHAVES) if (ctx.utm && ctx.utm[chave]) utm[chave] = ctx.utm[chave];
@@ -465,29 +584,17 @@
     return corpo;
   }
 
-  /** Caminho de campo devolvido no 400 (ex.: "pessoa.telefone") → etapa e campo do formulário. */
-  const CAMPO_DO_CAMINHO = {
-    "pessoa.nome": ["identificacao", "nome"],
-    "pessoa.telefone": ["identificacao", "telefone"],
-    "pessoa.email": ["identificacao", "email"],
-    "respostas.patrimonio_faixa": ["patrimonio", "patrimonio"],
-    "respostas.experiencia_faixa": ["experiencia", "experiencia"],
-    "respostas.aporte_faixa": ["aporte", "aporte"],
-    "respostas.idade_atual": ["idade_atual", "idade_atual"],
-    "respostas.idade_objetivo": ["idade_objetivo", "idade_objetivo"],
-    "respostas.renda_desejada_centavos": ["renda", "renda"],
-    "respostas.renda_desejada_indefinida": ["renda", "renda"],
-  };
-
+  /** Caminho devolvido no 400 (ex.: "pessoa.telefone", "respostas.renda") → tela e campo. */
   function campoDoCaminho(caminho) {
-    return CAMPO_DO_CAMINHO[caminho] || null;
+    const pessoa = /^pessoa\.(nome|telefone|email)$/.exec(caminho || "");
+    if (pessoa) return ["identificacao", pessoa[1]];
+    const resposta = /^respostas\.([a-z][a-z0-9_]*)$/.exec(caminho || "");
+    if (resposta) return [resposta[1], resposta[1]];
+    return null;
   }
 
   return {
-    FAIXAS,
-    PERGUNTAS,
-    rotuloDaFaixa,
-    faixaValida,
+    NAO_SEI,
     normalizarEspacos,
     validarNome,
     validarEmail,
@@ -505,6 +612,10 @@
     lerUtms,
     lerCodigoDoCaminho,
     dominioDeReferencia,
+    validarResposta,
+    rotuloResposta,
+    respostasLegiveis,
+    verificarFormulario,
     montarEnvio,
     campoDoCaminho,
     UTM_CHAVES,

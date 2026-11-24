@@ -6,8 +6,6 @@ const CRM = "https://crm.teste/v1/entrada/conector-planejamento";
 const ENV = {
   FLOWIA_PLANEJAMENTO_URL: CRM,
   FLOWIA_PLANEJAMENTO_TOKEN: "segredo-de-teste",
-  PLANEJAMENTO_IDADE_MINIMA: "18",
-  PLANEJAMENTO_IDADE_MAXIMA: "120",
 };
 const SITE = "https://caisinvestimentos.com.br";
 const ID = "6f1c0b9e-2d7a-4c1e-9d0b-5a3e8f2c7b11";
@@ -19,16 +17,17 @@ function corpoNavegador(extra = {}) {
     link: "a7k2m9",
     pessoa: { nome: "  Ana   Souza ", telefone: "+5527999998888", email: "ana+inv@exemplo.com" },
     respostas: {
-      patrimonio_faixa: "acima_500k_ate_1m",
-      experiencia_faixa: "acima_3m_ate_12m",
-      aporte_faixa: "acima_10_ate_20",
+      patrimonio: "acima_500k_ate_1m",
+      experiencia: "acima_3m_ate_12m",
+      aporte: "acima_10_ate_20",
       idade_atual: 30,
       idade_objetivo: 50,
-      renda_desejada_centavos: 1500000,
+      renda: 1500000,
+      chave_que_nao_existe: "ignorada",
     },
     utm: { utm_source: "instagram", utm_medium: "stories" },
     envio: {
-      form_versao: "planejamento-v1",
+      form_versao: "planejamento-v2",
       privacidade_versao: "2026-11-30",
       duracao_segundos: 94,
       dispositivo: "mobile",
@@ -77,7 +76,7 @@ async function chamar(caminho, { metodo = "GET", corpo, cabecalhos = {}, env = E
 const enviar = (corpo, opcoes) => chamar("/planejamento/api/envios", { metodo: "POST", corpo, ...opcoes });
 
 describe("POST /planejamento/api/envios", () => {
-  it("monta o LeadDoSite com chaves em ordem alfabética, derivados e Bearer", async () => {
+  it("monta o LeadDoSite: respostas legíveis, só patrimônio fixo, chaves em ordem alfabética e Bearer", async () => {
     const r = await enviar(corpoNavegador());
     expect(r.status).toBe(200);
     expect(await r.json()).toEqual({ recebido: true });
@@ -92,26 +91,29 @@ describe("POST /planejamento/api/envios", () => {
       id: `planejamento:${ID}`,
       pessoa: { nome: "Ana Souza", telefone: "+5527999998888", email: "ana+inv@exemplo.com" },
       campos: {
-        aporte_faixa: "acima_10_ate_20",
         dispositivo: "mobile",
         duracao_segundos: 94,
-        experiencia_faixa: "acima_3m_ate_12m",
-        form_versao: "planejamento-v1",
-        horizonte_anos: 20,
-        idade_atual: 30,
-        idade_objetivo: 50,
+        form_versao: "planejamento-v2",
         link_de_captacao: "a7k2m9",
         patrimonio_faixa: "acima_500k_ate_1m",
         privacidade_versao: "2026-11-30",
-        renda_anual_centavos: 18000000,
-        renda_desejada_centavos: 1500000,
         sessao_id: SESSAO,
         site_de_origem: "instagram.com",
         utm_medium: "stories",
         utm_source: "instagram",
       },
+      respostas: [
+        { pergunta: "Qual é o seu patrimônio atual?", resposta: "Acima de R$ 500 mil até R$ 1 milhão" },
+        { pergunta: "Há quanto tempo você investe regularmente?", resposta: "Acima de 3 meses até 12 meses" },
+        { pergunta: "Quanto da sua renda você consegue investir todos os meses?", resposta: "Acima de 10% até 20%" },
+        { pergunta: "Quantos anos você tem?", resposta: "30 anos" },
+        { pergunta: "Com qual idade você pretende viver de renda?", resposta: "50 anos" },
+        { pergunta: "Horizonte de planejamento", resposta: "20 anos" },
+        { pergunta: "Quanto você gostaria de receber por mês ao viver de renda?", resposta: "R$ 15.000,00" },
+        { pergunta: "Renda anual desejada", resposta: "R$ 180.000,00" },
+      ],
     });
-    expect(c.corpo).not.toMatch(/"enviado_em"|"origem"|parceiro|campanha|respostas|null/);
+    expect(c.corpo).not.toMatch(/"enviado_em"|"origem"|parceiro|campanha|null|chave_que_nao_existe/);
   });
 
   it("mesmo envio duas vezes: bytes idênticos ao CRM e sucesso nas duas", async () => {
@@ -165,22 +167,20 @@ describe("POST /planejamento/api/envios", () => {
     expect(r.headers.get("Retry-After")).toBe("7");
   });
 
-  it("acesso direto, e-mail vazio e 'Ainda não sei': chaves omitidas", async () => {
+  it("acesso direto, e-mail vazio e 'Ainda não sei': chaves omitidas, resposta legível", async () => {
     const corpo = corpoNavegador();
     delete corpo.link;
     delete corpo.utm;
     delete corpo.pessoa.email;
     delete corpo.envio.referencia_dominio;
-    delete corpo.respostas.renda_desejada_centavos;
-    corpo.respostas.renda_desejada_indefinida = true;
+    corpo.respostas.renda = "nao_sei";
     const r = await enviar(corpo);
     expect(r.status).toBe(200);
     const lead = JSON.parse(chamadas[0].corpo);
     expect(lead.pessoa).toEqual({ nome: "Ana Souza", telefone: "+5527999998888" });
-    expect(lead.campos.renda_desejada_indefinida).toBe(true);
-    for (const k of ["link_de_captacao", "renda_desejada_centavos", "renda_anual_centavos", "utm_source", "site_de_origem"]) {
-      expect(lead.campos).not.toHaveProperty(k);
-    }
+    expect(lead.respostas.at(-1)).toEqual({ pergunta: "Quanto você gostaria de receber por mês ao viver de renda?", resposta: "Ainda não sei" });
+    expect(lead.respostas.map((x) => x.pergunta)).not.toContain("Renda anual desejada");
+    for (const k of ["link_de_captacao", "utm_source", "site_de_origem"]) expect(lead.campos).not.toHaveProperty(k);
   });
 
   it("normaliza telefone com e sem +55 e DDD 55", async () => {
@@ -200,9 +200,10 @@ describe("POST /planejamento/api/envios", () => {
   it.each([
     ["idade pretendida menor que a atual", (c) => (c.respostas.idade_objetivo = 29), ["respostas.idade_objetivo"]],
     ["idade abaixo da mínima", (c) => (c.respostas.idade_atual = 17), ["respostas.idade_atual"]],
-    ["renda zero", (c) => (c.respostas.renda_desejada_centavos = 0), ["respostas.renda_desejada_centavos"]],
-    ["as duas formas de renda", (c) => (c.respostas.renda_desejada_indefinida = true), ["respostas.renda_desejada_centavos"]],
-    ["faixa desconhecida", (c) => (c.respostas.patrimonio_faixa = "muito"), ["respostas.patrimonio_faixa"]],
+    ["renda zero", (c) => (c.respostas.renda = 0), ["respostas.renda"]],
+    ["renda como texto inválido", (c) => (c.respostas.renda = "muito"), ["respostas.renda"]],
+    ["pergunta obrigatória sem resposta", (c) => delete c.respostas.aporte, ["respostas.aporte"]],
+    ["opção desconhecida", (c) => (c.respostas.patrimonio = "muito"), ["respostas.patrimonio"]],
     ["telefone internacional", (c) => (c.pessoa.telefone = "+12025550123"), ["pessoa.telefone"]],
     ["nome só com espaços", (c) => (c.pessoa.nome = "   "), ["pessoa.nome"]],
     ["e-mail inválido", (c) => (c.pessoa.email = "ana@exemplo"), ["pessoa.email"]],
@@ -220,14 +221,15 @@ describe("POST /planejamento/api/envios", () => {
   });
 
   it("aceita 100 anos e horizonte zero", async () => {
+    const horizonte = () => JSON.parse(chamadas[0].corpo).respostas.find((x) => x.pergunta === "Horizonte de planejamento").resposta;
     const corpo = corpoNavegador();
     corpo.respostas.idade_objetivo = 100;
     await enviar(corpo);
-    expect(JSON.parse(chamadas[0].corpo).campos.horizonte_anos).toBe(70);
+    expect(horizonte()).toBe("70 anos");
     chamadas = [];
     corpo.respostas.idade_objetivo = 30;
     await enviar(corpo);
-    expect(JSON.parse(chamadas[0].corpo).campos.horizonte_anos).toBe(0);
+    expect(horizonte()).toBe("0 anos");
   });
 
   it("honeypot e preenchimento instantâneo: 200 recebido, nada vai ao CRM", async () => {
@@ -248,7 +250,7 @@ describe("POST /planejamento/api/envios", () => {
   });
 
   it("sem segredo configurado: 503", async () => {
-    const r = await enviar(corpoNavegador(), { env: { PLANEJAMENTO_IDADE_MINIMA: "18" } });
+    const r = await enviar(corpoNavegador(), { env: {} });
     expect(r.status).toBe(503);
     expect(chamadas).toHaveLength(0);
   });
@@ -258,7 +260,7 @@ describe("POST /planejamento/api/envios", () => {
     await enviar(corpoNavegador());
     const texto = log.mock.calls.flat().join(" ");
     expect(texto).toMatch(/"status":200/);
-    expect(texto).not.toMatch(/Ana|99999|1500000|instagram/);
+    expect(texto).not.toMatch(/Ana|99999|1500000|15\.000|instagram/);
   });
 });
 
@@ -337,5 +339,27 @@ describe("demais rotas", () => {
     const r = await chamar("/planejamento/r/a7k2m9", { env: { ...ENV, ASSETS } });
     expect(await r.text()).toBe("pagina");
     expect(ASSETS.fetch).toHaveBeenCalledOnce();
+  });
+});
+
+describe("formulário livre", () => {
+  it("pergunta nova em perguntas.js vai ao CRM sem mudar o contrato", async () => {
+    const { montarLead } = await import("../index.js");
+    const formulario = {
+      versao: "teste",
+      perguntas: [
+        { chave: "patrimonio", tipo: "escolha", pergunta: "Patrimônio?", campo_crm: "patrimonio_faixa", opcoes: [{ chave: "a", rotulo: "A" }, { chave: "b", rotulo: "B" }] },
+        { chave: "objetivo", tipo: "texto", pergunta: "Qual é o seu principal objetivo?" },
+        { chave: "filhos", tipo: "inteiro", pergunta: "Quantos filhos?", sufixo: "filhos", opcional: true },
+      ],
+    };
+    const corpo = corpoNavegador({ respostas: { patrimonio: "b", objetivo: "  Aposentar   cedo " } });
+    const { erros, lead } = montarLead(corpo, {}, formulario);
+    expect(erros).toEqual([]);
+    expect(lead.campos.patrimonio_faixa).toBe("b");
+    expect(lead.respostas).toEqual([
+      { pergunta: "Patrimônio?", resposta: "B" },
+      { pergunta: "Qual é o seu principal objetivo?", resposta: "Aposentar cedo" },
+    ]);
   });
 });

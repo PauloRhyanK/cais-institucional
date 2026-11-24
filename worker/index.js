@@ -6,16 +6,19 @@
  * calcula os derivados e repassa ao CRM. NÃO guarda lead: a única gravação é no CRM.
  *
  * Contrato: docs/captacao-planejamento/contrato-recebimento.md
+ * Perguntas: planejamento/perguntas.js (o mesmo arquivo do navegador).
  * Segredos (wrangler secret put):
  *   FLOWIA_PLANEJAMENTO_URL   = https://<host do CRM>/v1/entrada/<id do conector Planejamento>
  *   FLOWIA_PLANEJAMENTO_TOKEN = segredo do conector (Bearer)
  */
 import * as moduloNucleo from "../planejamento/js/nucleo.js";
+import * as moduloPerguntas from "../planejamento/perguntas.js";
 import { parsePhoneNumberFromString } from "libphonenumber-js/min";
 
-// nucleo.js é UMD (script clássico no navegador): conforme o empacotador, chega como
-// CommonJS (default) ou registra o global CaisPlanejamento.
+// nucleo.js e perguntas.js são UMD (scripts clássicos no navegador): conforme o empacotador,
+// chegam como CommonJS (default) ou registram um global.
 const N = (moduloNucleo && moduloNucleo.default) || globalThis.CaisPlanejamento;
+const FORMULARIO = (moduloPerguntas && moduloPerguntas.default) || globalThis.CAIS_PLANEJAMENTO_FORMULARIO;
 const lib = { parsePhoneNumberFromString };
 
 const PREFIXO = "/planejamento/api";
@@ -25,7 +28,6 @@ const DOMINIO = /^(?=.{1,253}$)[a-z0-9-]+(\.[a-z0-9-]+)*$/i;
 const MAX_CORPO = 16 * 1024;
 const MAX_EVENTO = 2 * 1024;
 const DURACAO_MINIMA_S = 3; // 7 etapas em menos de 3 s não é preenchimento humano
-const RENDA_MAX_CENTAVOS = 99999999999999;
 const EVENTOS = new Set(["visita", "inicio", "etapa", "tentativa_envio", "falha_envio", "concluido"]);
 const DISPOSITIVOS = new Set(["mobile", "tablet", "desktop"]);
 const ROBOS =
@@ -131,14 +133,11 @@ function invalido(campos) {
 
 /**
  * Valida o corpo do navegador e monta o LeadDoSite do CRM.
- * Campos vazios são omitidos (o CRM recusa null); derivados são calculados aqui.
+ * As respostas seguem como lista legível (pergunta/resposta), como nas outras campanhas;
+ * só perguntas com `campo_crm` viram também campo fixo. Campos vazios são omitidos.
  */
-export function montarLead(corpo, env) {
+export function montarLead(corpo, _env, formulario = FORMULARIO) {
   const erros = [];
-  const regrasIdade = {
-    minima: inteiroOuNulo(env && env.PLANEJAMENTO_IDADE_MINIMA, 18),
-    maxima: inteiroOuNulo(env && env.PLANEJAMENTO_IDADE_MAXIMA, 120),
-  };
 
   const id = typeof corpo.id === "string" ? corpo.id.toLowerCase() : "";
   if (!UUID_V4.test(id)) erros.push("id");
@@ -161,27 +160,13 @@ export function montarLead(corpo, env) {
     else email = r.valor;
   }
 
-  const r = objeto(corpo.respostas);
-  for (const grupo of ["patrimonio", "experiencia", "aporte"]) {
-    if (!N.faixaValida(grupo, r[`${grupo}_faixa`])) erros.push(`respostas.${grupo}_faixa`);
-  }
-  const idadeAtual = Number.isInteger(r.idade_atual) ? N.validarIdade(String(r.idade_atual), regrasIdade) : { ok: false };
-  if (!idadeAtual.ok) erros.push("respostas.idade_atual");
-  const idadeObjetivo = Number.isInteger(r.idade_objetivo)
-    ? N.validarIdadeObjetivo(String(r.idade_objetivo), idadeAtual.ok ? idadeAtual.valor : null, regrasIdade)
-    : { ok: false };
-  if (!idadeObjetivo.ok) erros.push("respostas.idade_objetivo");
-
-  // Renda: exatamente uma das formas; nunca 0, nunca as duas.
-  const temCentavos = r.renda_desejada_centavos !== undefined;
-  const temIndefinida = r.renda_desejada_indefinida !== undefined;
-  let renda = null;
-  if (temCentavos && !temIndefinida && Number.isInteger(r.renda_desejada_centavos) && r.renda_desejada_centavos > 0 && r.renda_desejada_centavos <= RENDA_MAX_CENTAVOS) {
-    renda = { mensal: r.renda_desejada_centavos };
-  } else if (temIndefinida && !temCentavos && r.renda_desejada_indefinida === true) {
-    renda = { indefinida: true };
-  } else {
-    erros.push("respostas.renda_desejada_centavos");
+  // Respostas: validadas pergunta a pergunta, na ordem (para `minimoDe`). Chaves desconhecidas são ignoradas.
+  const brutas = objeto(corpo.respostas);
+  const respostas = {};
+  for (const pergunta of formulario.perguntas) {
+    const r = N.validarResposta(pergunta, brutas[pergunta.chave], respostas);
+    if (!r.ok) erros.push(`respostas.${pergunta.chave}`);
+    else if (r.valor != null) respostas[pergunta.chave] = r.valor;
   }
 
   const utm = {};
@@ -213,23 +198,11 @@ export function montarLead(corpo, env) {
 
   if (erros.length) return { erros, lead: null };
 
-  const campos = {
-    patrimonio_faixa: r.patrimonio_faixa,
-    experiencia_faixa: r.experiencia_faixa,
-    aporte_faixa: r.aporte_faixa,
-    idade_atual: idadeAtual.valor,
-    idade_objetivo: idadeObjetivo.valor,
-    horizonte_anos: N.horizonteEmAnos(idadeAtual.valor, idadeObjetivo.valor),
-    form_versao: e.form_versao,
-    sessao_id: sessao,
-    ...utm,
-  };
-  if (link) campos.link_de_captacao = link;
-  if (renda.indefinida) campos.renda_desejada_indefinida = true;
-  else {
-    campos.renda_desejada_centavos = renda.mensal;
-    campos.renda_anual_centavos = renda.mensal * 12;
+  const campos = { form_versao: e.form_versao, sessao_id: sessao, ...utm };
+  for (const pergunta of formulario.perguntas) {
+    if (pergunta.campo_crm && respostas[pergunta.chave] != null) campos[pergunta.campo_crm] = respostas[pergunta.chave];
   }
+  if (link) campos.link_de_captacao = link;
   if (e.privacidade_versao) campos.privacidade_versao = e.privacidade_versao;
   if (e.duracao_segundos !== undefined) campos.duracao_segundos = e.duracao_segundos;
   if (e.dispositivo) campos.dispositivo = e.dispositivo;
@@ -238,7 +211,8 @@ export function montarLead(corpo, env) {
   const pessoa = { nome: nome.valor, telefone: telefone.e164 };
   if (email) pessoa.email = email;
 
-  return { erros, lead: { id: `planejamento:${id}`, pessoa, campos } };
+  const legiveis = N.respostasLegiveis(formulario, respostas, "crm").map(({ pergunta, resposta }) => ({ pergunta, resposta }));
+  return { erros, lead: { id: `planejamento:${id}`, pessoa, campos, respostas: legiveis } };
 }
 
 /** Repassa ao CRM com até 2 tentativas rápidas (0,5 s e 2 s) para 5xx, timeout e rede. */
@@ -363,7 +337,8 @@ export function montarEvento(c) {
   const sessao = typeof c.sessao_id === "string" ? c.sessao_id.toLowerCase() : "";
   if (!UUID_V4.test(sessao) || !EVENTOS.has(c.evento) || !textoCurto(c.form_versao, 50)) return null;
   const temEtapa = c.evento === "etapa";
-  if (temEtapa && !(Number.isInteger(c.etapa) && c.etapa >= 1 && c.etapa <= 7)) return null;
+  const totalEtapas = FORMULARIO.perguntas.length + 1;
+  if (temEtapa && !(Number.isInteger(c.etapa) && c.etapa >= 1 && c.etapa <= totalEtapas)) return null;
   let link = null;
   if (c.link !== undefined && c.link !== null && c.link !== "") {
     link = typeof c.link === "string" ? c.link.toLowerCase() : "";
@@ -432,13 +407,6 @@ function objeto(v) {
 
 function textoCurto(v, max) {
   return typeof v === "string" && v.trim().length > 0 && v.length <= max;
-}
-
-function inteiroOuNulo(valor, padrao) {
-  if (valor === undefined) return padrao;
-  if (valor === null || valor === "" || valor === "null") return null;
-  const n = Number(valor);
-  return Number.isInteger(n) ? n : padrao;
 }
 
 function metodoNaoPermitido(permitido) {

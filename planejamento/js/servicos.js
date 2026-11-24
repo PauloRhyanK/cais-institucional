@@ -71,7 +71,7 @@
     if (sessao.linkCodigo) corpo.link = sessao.linkCodigo;
     corpo.evento = evento;
     if (evento === "etapa") corpo.etapa = etapa;
-    corpo.form_versao = cfg.FORM_VERSAO;
+    corpo.form_versao = (window.CAIS_PLANEJAMENTO_FORMULARIO || {}).versao;
 
     if (simulando || !base || automatizado) {
       if (local) console.debug("[evento]", corpo);

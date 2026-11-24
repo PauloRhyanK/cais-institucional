@@ -151,72 +151,92 @@ test("atribuição: código do caminho e UTMs", () => {
   assert.equal(N.dominioDeReferencia("", "a"), null);
 });
 
-const BASE = {
-  patrimonio_faixa: "acima_500k_ate_1m",
-  experiencia_faixa: "nao_investe",
-  aporte_faixa: "ate_10",
-  idade_atual: 30,
-  idade_objetivo: 50,
-  nome: "Ana",
-  telefone_e164: "+5527999998888",
-  email: null,
-};
-const CTX = { id: "6f1c0b9e-2d7a-4c1e-9d0b-5a3e8f2c7b11", versaoFormulario: "planejamento-v1", sessaoId: "s-1", utm: {} };
+const F = require("../perguntas.js");
+const P = (k) => F.perguntas.find((p) => p.chave === k);
 
-test("envio (contrato): acesso direto omite link, e-mail vazio, utm vazia e referência vazia", () => {
-  const c = N.montarEnvio({ ...BASE, renda_desejada_indefinida: false, renda_desejada_centavos: 1500000 }, CTX);
-  assert.equal("link" in c, false);
-  assert.deepEqual(c.pessoa, { nome: "Ana", telefone: "+5527999998888" });
-  assert.equal("utm" in c, false);
-  assert.equal("referencia_dominio" in c.envio, false);
-  assert.equal(c.site, "");
-  assert.deepEqual(Object.keys(c), ["id", "pessoa", "respostas", "envio", "site"]);
+test("perguntas.js: configuração válida e verificação acusa erros comuns", () => {
+  assert.deepEqual(N.verificarFormulario(F), []);
+  const ruim = {
+    versao: "v1",
+    perguntas: [
+      { chave: "nome", tipo: "texto", pergunta: "x" },
+      { chave: "a", tipo: "escolha", pergunta: "y", opcoes: [{ chave: "s", rotulo: "Sim" }] },
+      { chave: "b", tipo: "idade", pergunta: "z", minimoDe: "c" },
+      { chave: "c", tipo: "slider", pergunta: "w" },
+    ],
+  };
+  const problemas = N.verificarFormulario(ruim).join(" | ");
+  assert.match(problemas, /chave reservada/);
+  assert.match(problemas, /ao menos 2 opções/);
+  assert.match(problemas, /"c" precisa ser uma pergunta anterior/);
+  assert.match(problemas, /tipo desconhecido/);
 });
 
-test("envio (contrato): renda é exatamente um dos dois campos, nunca 0", () => {
-  const indef = N.montarEnvio({ ...BASE, renda_desejada_indefinida: true, renda_desejada_centavos: null }, CTX);
-  assert.equal(indef.respostas.renda_desejada_indefinida, true);
-  assert.equal("renda_desejada_centavos" in indef.respostas, false);
-  const def = N.montarEnvio({ ...BASE, renda_desejada_indefinida: false, renda_desejada_centavos: 1500000 }, CTX);
-  assert.equal(def.respostas.renda_desejada_centavos, 1500000);
-  assert.equal("renda_desejada_indefinida" in def.respostas, false);
+test("validarResposta: escolha, idade com minimoDe, moeda com 'Ainda não sei', texto e opcional", () => {
+  assert.deepEqual(N.validarResposta(P("patrimonio"), "ate_100k", {}), { ok: true, valor: "ate_100k" });
+  assert.equal(N.validarResposta(P("patrimonio"), "inventada", {}).ok, false);
+  assert.equal(N.validarResposta(P("patrimonio"), undefined, {}).erro, "Selecione uma opção para continuar.");
+  assert.deepEqual(N.validarResposta(P("idade_atual"), " 30 ", {}), { ok: true, valor: 30 });
+  assert.deepEqual(N.validarResposta(P("idade_atual"), 30, {}), { ok: true, valor: 30 });
+  assert.match(N.validarResposta(P("idade_atual"), "17", {}).erro, /18 anos ou mais/);
+  assert.match(N.validarResposta(P("idade_objetivo"), "29", { idade_atual: 30 }).erro, /\(30 anos\)\. Informe 30 anos ou mais/);
+  assert.deepEqual(N.validarResposta(P("idade_objetivo"), "100", { idade_atual: 30 }), { ok: true, valor: 100 });
+  assert.deepEqual(N.validarResposta(P("renda"), "15.000,00", {}), { ok: true, valor: 1500000 });
+  assert.deepEqual(N.validarResposta(P("renda"), 1500000, {}), { ok: true, valor: 1500000 });
+  assert.deepEqual(N.validarResposta(P("renda"), N.NAO_SEI, {}), { ok: true, valor: N.NAO_SEI });
+  assert.equal(N.validarResposta(P("renda"), 0, {}).ok, false);
+  assert.match(N.validarResposta(P("renda"), "0", {}).erro, /Ainda não sei/);
+
+  const semNaoSei = { chave: "r", tipo: "moeda", pergunta: "?" };
+  assert.equal(N.validarResposta(semNaoSei, N.NAO_SEI, {}).ok, false);
+  assert.doesNotMatch(N.validarResposta(semNaoSei, "0", {}).erro, /Ainda não sei/);
+  const texto = { chave: "obs", tipo: "texto", pergunta: "?", opcional: true, maximo: 5 };
+  assert.deepEqual(N.validarResposta(texto, "  ", {}), { ok: true, valor: null, vazia: true });
+  assert.equal(N.validarResposta(texto, "abcdef", {}).ok, false);
+  const filhos = { chave: "filhos", tipo: "inteiro", pergunta: "?", sufixo: "filhos", minimo: 0 };
+  assert.deepEqual(N.validarResposta(filhos, "0", {}), { ok: true, valor: 0 });
+  assert.equal(N.rotuloResposta(filhos, 2), "2 filhos");
 });
 
-test("envio (contrato): link, utm e envio completos; sem derivados nem atribuição", () => {
-  const c = N.montarEnvio(
-    { ...BASE, email: "ana+inv@exemplo.com", renda_desejada_indefinida: false, renda_desejada_centavos: 100 },
-    {
-      ...CTX,
-      linkCodigo: "a7k2m9",
-      utm: { utm_source: "instagram", utm_medium: "stories" },
-      referenciaDominio: "instagram.com",
-      dispositivo: "mobile",
-      duracaoSegundos: 94,
-      privacidadeVersao: "2026-11-30",
-      armadilha: "",
-    }
+test("respostasLegiveis: ordem do formulário, derivados e resumo sem 'Ainda não sei'", () => {
+  const r = { patrimonio: "ate_100k", experiencia: "ate_3m", aporte: "ate_10", idade_atual: 30, idade_objetivo: 50, renda: 1500000 };
+  const crm = N.respostasLegiveis(F, r, "crm");
+  assert.deepEqual(
+    crm.map((x) => [x.pergunta, x.resposta]),
+    [
+      ["Qual é o seu patrimônio atual?", "Até R$ 100 mil"],
+      ["Há quanto tempo você investe regularmente?", "Até 3 meses"],
+      ["Quanto da sua renda você consegue investir todos os meses?", "Até 10%"],
+      ["Quantos anos você tem?", "30 anos"],
+      ["Com qual idade você pretende viver de renda?", "50 anos"],
+      ["Horizonte de planejamento", "20 anos"],
+      ["Quanto você gostaria de receber por mês ao viver de renda?", "R$ 15.000,00"],
+      ["Renda anual desejada", "R$ 180.000,00"],
+    ]
   );
-  assert.equal(c.link, "a7k2m9");
-  assert.equal(c.pessoa.email, "ana+inv@exemplo.com");
-  assert.deepEqual(c.utm, { utm_source: "instagram", utm_medium: "stories" });
-  assert.deepEqual(c.envio, {
-    form_versao: "planejamento-v1",
-    privacidade_versao: "2026-11-30",
-    duracao_segundos: 94,
-    dispositivo: "mobile",
-    sessao_id: "s-1",
-    referencia_dominio: "instagram.com",
-  });
-  const json = JSON.stringify(c);
-  for (const proibido of ["horizonte", "renda_anual", "origem", "parceiro", "campanha", "pergunta"]) {
-    assert.equal(json.includes(proibido), false, proibido);
-  }
+  const resumo = N.respostasLegiveis(F, { ...r, renda: N.NAO_SEI }, "resumo").map((x) => x.pergunta);
+  assert.deepEqual(resumo, ["Patrimônio", "Histórico de investimentos", "Capacidade de aporte", "Idade pretendida", "Horizonte de planejamento"]);
+  const naoSeiCrm = N.respostasLegiveis(F, { ...r, renda: N.NAO_SEI }, "crm");
+  assert.deepEqual(naoSeiCrm.slice(-1)[0], { chave: "renda", pergunta: "Quanto você gostaria de receber por mês ao viver de renda?", resposta: "Ainda não sei" });
 });
 
-test("envio (contrato): caminhos do 400 apontam para a etapa e o campo certos", () => {
+test("montarEnvio: só valores por chave, sem rótulos; vazios omitidos", () => {
+  const c = N.montarEnvio(
+    { respostas: { patrimonio: "ate_100k", renda: N.NAO_SEI, vazia: null }, nome: "Ana", telefone_e164: "+5527999998888", email: null },
+    { id: "x", versaoFormulario: "planejamento-v2", sessaoId: "s", utm: {} }
+  );
+  assert.deepEqual(c, {
+    id: "x",
+    pessoa: { nome: "Ana", telefone: "+5527999998888" },
+    respostas: { patrimonio: "ate_100k", renda: "nao_sei" },
+    envio: { form_versao: "planejamento-v2", sessao_id: "s" },
+    site: "",
+  });
+});
+
+test("campoDoCaminho: respostas.<chave> e pessoa.* apontam a tela certa", () => {
   assert.deepEqual(N.campoDoCaminho("pessoa.telefone"), ["identificacao", "telefone"]);
   assert.deepEqual(N.campoDoCaminho("respostas.idade_objetivo"), ["idade_objetivo", "idade_objetivo"]);
-  assert.deepEqual(N.campoDoCaminho("respostas.renda_desejada_centavos"), ["renda", "renda"]);
   assert.equal(N.campoDoCaminho("envio.duracao_segundos"), null);
-  assert.equal(N.lerCodigoDoCaminho("/planejamento/r/abcdefghijklmnopq").invalido, true); // 17 > 16
+  assert.equal(N.lerCodigoDoCaminho("/planejamento/r/abcdefghijklmnopq").invalido, true);
 });

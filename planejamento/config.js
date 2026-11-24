@@ -2,13 +2,12 @@
  * Configuração da página de captação "Planejamento".
  * Nenhuma credencial aqui: o navegador chama o Worker do próprio site (/planejamento/api),
  * que guarda o segredo do conector e entrega o lead ao CRM (Flow.ia). Nada é gravado no site.
+ * As PERGUNTAS ficam em /planejamento/perguntas.js.
  * Contrato: docs/captacao-planejamento/contrato-recebimento.md
  */
 window.CAIS_PLANEJAMENTO_CONFIG = {
   // Worker do site (mesmo domínio, sem CORS): /envios, /link/{codigo}, /eventos
   API_BASE: "/planejamento/api",
-
-  FORM_VERSAO: "planejamento-v1",
 
   // Privacidade — PENDENTE: URL da política e versão do aviso.
   POLITICA_PRIVACIDADE_URL: "",
@@ -17,9 +16,7 @@ window.CAIS_PLANEJAMENTO_CONFIG = {
   // O contrato atual não tem campo para registrar o consentimento: alinhar com o CRM antes de ativar.
   CONSENTIMENTO_EXPLICITO: false,
 
-  // Regras de elegibilidade — PENDENTES de confirmação pela operação.
-  IDADE_MINIMA: 18, // null = sem idade mínima
-  IDADE_MAXIMA: 120, // limite explícito, comunicado na mensagem de erro
+  // Telefone: só números do Brasil (pendente de confirmação).
   APENAS_BRASIL: true, // o servidor aceita só +55 enquanto a pendência não for resolvida
 
   // Link desativado: true = oferece seguir como acesso direto (sem atribuição).

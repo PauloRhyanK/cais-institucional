@@ -2,6 +2,8 @@
 
 Status: **proposta para aprovação**. Data: 24/11/2026. Origem: CAIS V2.
 
+> **Atualização 24/11/2026 (decisão do Paulo):** o formulário é **livre**. As respostas vão ao CRM como lista `respostas` (pergunta e resposta legíveis), como nas outras campanhas, e o site pode adicionar, editar ou tirar perguntas sem mudança no CRM. **Só `patrimonio_faixa` continua como campo fixo.** Esta versão substitui os campos `experiencia_faixa`, `aporte_faixa`, `idade_atual`, `idade_objetivo`, `horizonte_anos` e `renda_*` da proposta anterior.
+
 **Lado do site:** implementado e testado contra este contrato, com o CRM simulado. Ver `worker/index.js`, `worker/testes/worker.test.js` e `planejamento/README.md`.
 **Lado do CRM:** as rotas `/ligacao/…` e `/evento` (§3 e §4) ainda serão criadas.
 
@@ -51,21 +53,24 @@ O corpo segue o `LeadDoSite`, que é estrito: chave desconhecida dá `400`.
   "campos": {
     "link_de_captacao": "a7k2m9",
     "patrimonio_faixa": "acima_500k_ate_1m",
-    "experiencia_faixa": "acima_3m_ate_12m",
-    "aporte_faixa": "acima_10_ate_20",
-    "idade_atual": 30,
-    "idade_objetivo": 50,
-    "horizonte_anos": 20,
-    "renda_desejada_centavos": 1500000,
-    "renda_anual_centavos": 18000000,
     "utm_source": "instagram", "utm_medium": "stories", "utm_campaign": "...", "utm_content": "...", "utm_term": "...", "utm_id": "...",
-    "form_versao": "planejamento-v1",
+    "form_versao": "planejamento-v2",
     "privacidade_versao": "2026-11-xx",
     "duracao_segundos": 94,
     "dispositivo": "mobile",
     "sessao_id": "3b2f9a4e-8c1d-4f6a-b7e2-1d9c0a5f3e88",
     "site_de_origem": "instagram.com"
-  }
+  },
+  "respostas": [
+    { "pergunta": "Qual é o seu patrimônio atual?", "resposta": "Acima de R$ 500 mil até R$ 1 milhão" },
+    { "pergunta": "Há quanto tempo você investe regularmente?", "resposta": "Acima de 3 meses até 12 meses" },
+    { "pergunta": "Quanto da sua renda você consegue investir todos os meses?", "resposta": "Acima de 10% até 20%" },
+    { "pergunta": "Quantos anos você tem?", "resposta": "30 anos" },
+    { "pergunta": "Com qual idade você pretende viver de renda?", "resposta": "50 anos" },
+    { "pergunta": "Horizonte de planejamento", "resposta": "20 anos" },
+    { "pergunta": "Quanto você gostaria de receber por mês ao viver de renda?", "resposta": "R$ 15.000,00" },
+    { "pergunta": "Renda anual desejada", "resposta": "R$ 180.000,00" }
+  ]
 }
 ```
 
@@ -80,11 +85,10 @@ O corpo segue o `LeadDoSite`, que é estrito: chave desconhecida dá `400`.
 | `pessoa.nome` | Trim e espaços colapsados, de 2 a 300 caracteres. |
 | `pessoa.telefone` | E.164. Sem telefone e sem e-mail válidos, o lead é descartado do lado do CRM, por isso o Worker valida antes. |
 | `link_de_captacao` | O código como veio da URL, em minúsculas, no formato `^[a-z0-9]{4,16}$`. O Worker **não** resolve o código. |
-| `*_faixa` | Uma das chaves fechadas da lista do site (§7). Uma chave que o CRM não conhece é descartada em silêncio, então as listas precisam estar combinadas antes. |
-| Idades e horizonte | Inteiros, com `idade_objetivo ≥ idade_atual` e `horizonte_anos = idade_objetivo − idade_atual`. |
-| Renda | Mande **ou** `renda_desejada_centavos` (renda mensal, inteiro > 0) e `renda_anual_centavos` (mensal × 12), **ou** `renda_desejada_indefinida: true`. Nunca mande `0` nem as duas formas juntas. |
+| `patrimonio_faixa` | **Único campo fixo de resposta.** Uma das chaves combinadas (§7). |
+| `respostas` | Lista de `{pergunta, resposta}` em texto legível, na ordem do formulário, com derivados (horizonte, renda anual). **Muda livremente** conforme `planejamento/perguntas.js`: até 30 itens, sem exigir mudança no CRM. "Ainda não sei" chega como resposta literal, nunca como zero. A versão do formulário vai em `form_versao`. |
 | `site_de_origem` | É o `referencia_dominio`: só o domínio do referrer. Ele usa um campo que já existe na entrada. |
-| Fica de fora | `origem`, parceiro, campanha, canal, local, conteúdo e `respostas` (pergunta/resposta). A atribuição é do CRM, e os valores financeiros vão só em campos estruturados. |
+| Fica de fora | `origem`, parceiro, campanha, canal, local e conteúdo. A atribuição é do CRM. |
 
 ### Respostas do CRM e o que o Worker faz
 
@@ -137,9 +141,9 @@ Formato usado pelo site, documentado em `planejamento/README.md`:
   "link": "a7k2m9",
   "pessoa": { "nome": "...", "telefone": "+55...", "email": "..." },
   "respostas": {
-    "patrimonio_faixa": "...", "experiencia_faixa": "...", "aporte_faixa": "...",
+    "patrimonio": "acima_500k_ate_1m", "experiencia": "...", "aporte": "...",
     "idade_atual": 30, "idade_objetivo": 50,
-    "renda_desejada_centavos": 1500000
+    "renda": 1500000
   },
   "utm": { "utm_source": "..." },
   "envio": {
@@ -150,7 +154,7 @@ Formato usado pelo site, documentado em `planejamento/README.md`:
 }
 ```
 
-Em vez de `renda_desejada_centavos`, a renda pode vir como `renda_desejada_indefinida: true`.
+As chaves e os valores seguem `planejamento/perguntas.js`. A `renda` pode vir como `"nao_sei"`.
 
 ## 6. Atribuição: o que acontece no CRM
 
@@ -166,7 +170,7 @@ Em vez de `renda_desejada_centavos`, a renda pode vir como `renda_desejada_indef
 
 ## 7. O que o site precisa entregar ao CRM antes da publicação
 
-1. As listas fechadas de chaves e rótulos de `patrimonio_faixa`, `aporte_faixa` e `experiencia_faixa`. Estão em `planejamento/README.md`.
+1. As chaves de `patrimonio_faixa`, em `planejamento/README.md`. As demais perguntas não precisam de combinação.
 2. A `privacidade_versao` e a URL da política de privacidade, quando existirem. **Pendente.**
 
 O que o CRM entrega ao site:
@@ -185,7 +189,8 @@ Os testes rodam com Vitest e `@cloudflare/vitest-plugin`, sucessor do `@cloudfla
 - `403`: `503` ao navegador.
 - Acesso direto: sem `link_de_captacao`.
 - E-mail vazio: chave omitida.
-- "Ainda não sei": só `renda_desejada_indefinida: true`.
+- "Ainda não sei": resposta literal na lista, sem renda anual.
+- Pergunta nova em `perguntas.js`: chega na lista `respostas` sem mudar o contrato.
 - Link com `ativo:false`: tela de link indisponível.
 - Ligação fora do ar: o formulário segue normal.
 
