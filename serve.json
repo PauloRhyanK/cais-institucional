@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/planejamento/r/:codigo", "destination": "/planejamento/index.html" }
+  ]
+}

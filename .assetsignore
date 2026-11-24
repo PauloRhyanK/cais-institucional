@@ -13,3 +13,11 @@ README.md
 .env.*
 CAIS_Manual-da-Marca.pdf
 *.sql
+serve.json
+docs/
+planejamento/testes/
+*.map
+.playwright-mcp/
+worker/
+vitest.config.mjs
+.dev.vars*

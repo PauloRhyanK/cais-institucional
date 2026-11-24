@@ -5,7 +5,11 @@
   "scripts": {
     "dev": "npx serve -l 3000 .",
     "start": "npx serve -l 3000 .",
-    "preview": "python3 -m http.server 3000"
+    "preview": "python3 -m http.server 3000",
+    "test:planejamento": "node --test planejamento/testes/*.test.cjs",
+    "test:worker": "vitest run",
+    "dev:worker": "wrangler dev",
+    "test": "node --test planejamento/testes/*.test.cjs && vitest run"
   },
   "keywords": [
     "cais",
@@ -13,5 +17,17 @@
     "institucional"
   ],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.9.2",
+    "vitest": "^5.1.1",
+    "wrangler": "^4.168.0"
+  },
+  "allowScripts": {
+    "workerd@1.20261123.1": true,
+    "esbuild@0.28.2": true
+  },
+  "dependencies": {
+    "libphonenumber-js": "^1.13.17"
+  }
 }

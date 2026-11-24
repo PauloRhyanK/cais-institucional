@@ -19,3 +19,6 @@ build/
 # Brand Manual & Large Assets
 CAIS_Manual-da-Marca.pdf
 *.sql
+.playwright-mcp/
+.dev.vars*
+.wrangler/

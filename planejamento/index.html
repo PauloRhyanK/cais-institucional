@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#081421" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <!-- Remover no lançamento oficial (política de privacidade publicada). -->
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="format-detection" content="telephone=no" />
+  <title>Quando você pretende viver de renda? — Cais Investimentos</title>
+  <meta name="description" content="Conte um pouco sobre seu momento financeiro e seus planos para o futuro." />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="pt_BR" />
+  <meta property="og:title" content="Quando você pretende viver de renda?" />
+  <meta property="og:description" content="Conte um pouco sobre seu momento financeiro e seus planos para o futuro." />
+  <link rel="icon" type="image/svg+xml" href="/planejamento/assets/favicon.svg" />
+  <link rel="preload" href="/planejamento/fonts/GeneralSans-Regular.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="/planejamento/fonts/GeneralSans-Medium.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="/planejamento/styles.css" />
+</head>
+<body>
+  <!-- Grafismo institucional discreto (Manual da Marca págs. 20 e 23), como no convite -->
+  <svg class="grafismo" viewBox="0 0 320 560" fill="none" aria-hidden="true">
+    <path d="M160 4 L4 142 L56 280 Z" fill="#003B5C" fill-opacity="0.38" />
+    <path d="M160 556 L316 418 L264 280 Z" fill="#003B5C" fill-opacity="0.38" />
+    <path d="M160 4 L316 142 L264 280 Z M160 556 L4 418 L56 280 Z M160 4 L264 280 L160 556 L56 280 Z"
+      stroke="#003B5C" stroke-opacity="0.55" stroke-width="1.2" />
+  </svg>
+
+  <div class="moldura">
+    <header class="topo">
+      <button type="button" class="voltar" id="voltar" aria-label="Voltar para a pergunta anterior" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
+      </button>
+      <img class="marca" src="/planejamento/assets/logo-cais.svg" alt="Cais Investimentos" width="120" height="40" />
+      <p class="etapa-atual" id="etapa-atual" aria-live="polite"></p>
+    </header>
+    <div class="progresso" id="progresso" role="progressbar" aria-label="Progresso do formulário"
+      aria-valuemin="0" aria-valuemax="7" aria-valuenow="0" hidden>
+      <span class="progresso-barra" id="progresso-barra"></span>
+    </div>
+
+    <main class="palco" id="palco">
+      <noscript>
+        <p class="aviso-noscript">Para responder, ative o JavaScript do seu navegador.</p>
+      </noscript>
+
+      <!-- Tela inicial -->
+      <section class="tela" data-tela="inicio" aria-labelledby="t-inicio">
+        <svg class="ilustracao" viewBox="0 0 280 150" aria-hidden="true">
+          <defs>
+            <linearGradient id="g-area" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#d9bd7e" stop-opacity="0.28" />
+              <stop offset="1" stop-color="#d9bd7e" stop-opacity="0" />
+            </linearGradient>
+          </defs>
+          <g class="ilustracao-grade">
+            <line x1="20" y1="130" x2="260" y2="130" />
+            <line x1="20" y1="95" x2="260" y2="95" />
+            <line x1="20" y1="60" x2="260" y2="60" />
+          </g>
+          <path class="ilustracao-area" d="M20 122 C70 118 95 108 130 96 S200 60 250 30 L250 130 L20 130 Z" fill="url(#g-area)" />
+          <path class="ilustracao-linha" d="M20 122 C70 118 95 108 130 96 S200 60 250 30" />
+          <circle class="ilustracao-ponto" cx="20" cy="122" r="4" />
+          <circle class="ilustracao-ponto" cx="130" cy="96" r="4" />
+          <g class="ilustracao-alvo" transform="translate(250 30)">
+            <path d="M0 -11 L8 0 L0 11 L-8 0 Z" />
+          </g>
+        </svg>
+        <p class="sobretitulo">Planejamento financeiro</p>
+        <h1 class="titulo titulo-inicio" id="t-inicio" tabindex="-1">Quando você pretende viver de renda?</h1>
+        <p class="apoio">Conte um pouco sobre seu momento financeiro e seus planos para o futuro.</p>
+        <button type="button" class="botao" id="comecar">
+          Começar
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+        </button>
+        <p class="tempo">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+          Leva cerca de 2 minutos · 7 perguntas
+        </p>
+      </section>
+
+      <!-- Etapa 1 — Patrimônio -->
+      <section class="tela" data-tela="patrimonio" aria-labelledby="t-patrimonio" hidden>
+        <form class="formulario" novalidate data-etapa="1">
+          <fieldset class="grupo" aria-describedby="a-patrimonio erro-patrimonio">
+            <legend class="titulo" id="t-patrimonio" tabindex="-1">Qual é o seu patrimônio atual?</legend>
+            <p class="apoio" id="a-patrimonio">Considere uma estimativa do seu patrimônio total.</p>
+            <div class="cartoes" data-grupo="patrimonio"></div>
+          </fieldset>
+          <p class="erro" id="erro-patrimonio" role="alert"></p>
+          <button type="submit" class="botao">Continuar</button>
+        </form>
+      </section>
+
+      <!-- Etapa 2 — Experiência -->
+      <section class="tela" data-tela="experiencia" aria-labelledby="t-experiencia" hidden>
+        <form class="formulario" novalidate data-etapa="2">
+          <fieldset class="grupo" aria-describedby="a-experiencia erro-experiencia">
+            <legend class="titulo" id="t-experiencia" tabindex="-1">Há quanto tempo você investe regularmente?</legend>
+            <p class="apoio" id="a-experiencia">Considere o período em que realiza aportes com frequência.</p>
+            <div class="cartoes" data-grupo="experiencia"></div>
+          </fieldset>
+          <p class="erro" id="erro-experiencia" role="alert"></p>
+          <button type="submit" class="botao">Continuar</button>
+        </form>
+      </section>
+
+      <!-- Etapa 3 — Capacidade de aporte -->
+      <section class="tela" data-tela="aporte" aria-labelledby="t-aporte" hidden>
+        <form class="formulario" novalidate data-etapa="3">
+          <fieldset class="grupo" aria-describedby="a-aporte erro-aporte">
+            <legend class="titulo" id="t-aporte" tabindex="-1">Quanto da sua renda você consegue investir todos os meses?</legend>
+            <p class="apoio" id="a-aporte">Selecione a faixa mais próxima da sua realidade.</p>
+            <div class="cartoes" data-grupo="aporte"></div>
+          </fieldset>
+          <p class="erro" id="erro-aporte" role="alert"></p>
+          <button type="submit" class="botao">Continuar</button>
+        </form>
+      </section>
+
+      <!-- Etapa 4 — Idade atual -->
+      <section class="tela" data-tela="idade_atual" aria-labelledby="t-idade-atual" hidden>
+        <form class="formulario" novalidate data-etapa="4">
+          <h2 class="titulo" id="t-idade-atual" tabindex="-1">Quantos anos você tem?</h2>
+          <div class="campo-numero">
+            <input id="idade-atual" class="entrada-grande" type="text" inputmode="numeric" pattern="[0-9]*"
+              autocomplete="off" enterkeyhint="next" placeholder="Ex.: 30"
+              aria-labelledby="t-idade-atual" aria-describedby="erro-idade-atual regra-idade" />
+            <span class="sufixo" aria-hidden="true">anos</span>
+          </div>
+          <p class="erro" id="erro-idade-atual" role="alert"></p>
+          <p class="nota" id="regra-idade" hidden></p>
+          <button type="submit" class="botao">Continuar</button>
+        </form>
+      </section>
+
+      <!-- Etapa 5 — Idade pretendida -->
+      <section class="tela" data-tela="idade_objetivo" aria-labelledby="t-idade-objetivo" hidden>
+        <form class="formulario" novalidate data-etapa="5">
+          <h2 class="titulo" id="t-idade-objetivo" tabindex="-1">Com qual idade você pretende viver de renda?</h2>
+          <div class="campo-numero">
+            <input id="idade-objetivo" class="entrada-grande" type="text" inputmode="numeric" pattern="[0-9]*"
+              autocomplete="off" enterkeyhint="next" placeholder="Ex.: 50"
+              aria-labelledby="t-idade-objetivo" aria-describedby="erro-idade-objetivo linha-tempo" />
+            <span class="sufixo" aria-hidden="true">anos</span>
+          </div>
+          <p class="erro" id="erro-idade-objetivo" role="alert"></p>
+          <div class="linha-tempo" id="linha-tempo" aria-live="polite" hidden></div>
+          <button type="submit" class="botao">Continuar</button>
+        </form>
+      </section>
+
+      <!-- Etapa 6 — Renda mensal desejada -->
+      <section class="tela" data-tela="renda" aria-labelledby="t-renda" hidden>
+        <form class="formulario" novalidate data-etapa="6">
+          <h2 class="titulo" id="t-renda" tabindex="-1">Quanto você gostaria de receber por mês ao viver de renda?</h2>
+          <div class="campo-moeda" id="campo-renda">
+            <span class="prefixo" aria-hidden="true">R$</span>
+            <input id="renda" class="entrada-grande" type="text" inputmode="decimal" autocomplete="off"
+              enterkeyhint="next" placeholder="15.000,00"
+              aria-labelledby="t-renda" aria-describedby="erro-renda" />
+          </div>
+          <p class="erro" id="erro-renda" role="alert"></p>
+          <button type="button" class="alternar" id="renda-nao-sei" aria-pressed="false">
+            <span class="alternar-marca" aria-hidden="true"></span>
+            Ainda não sei
+          </button>
+          <button type="submit" class="botao">Continuar</button>
+        </form>
+      </section>
+
+      <!-- Etapa 7 — Identificação -->
+      <section class="tela" data-tela="identificacao" aria-labelledby="t-identificacao" hidden>
+        <form class="formulario formulario-dados" novalidate data-etapa="7" id="form-dados">
+          <h2 class="titulo" id="t-identificacao" tabindex="-1">Vamos nos conhecer?</h2>
+          <p class="apoio">Deixe seus dados para que nossa equipe possa conversar com você sobre seus planos.</p>
+
+          <div class="campo">
+            <label for="nome" class="rotulo">Nome completo</label>
+            <input id="nome" name="name" class="entrada" type="text" autocomplete="name" autocapitalize="words"
+              enterkeyhint="next" required aria-describedby="erro-nome" />
+            <p class="erro" id="erro-nome" role="alert"></p>
+          </div>
+
+          <div class="campo">
+            <label for="telefone" class="rotulo">WhatsApp</label>
+            <input id="telefone" name="tel" class="entrada" type="tel" inputmode="tel" autocomplete="tel"
+              enterkeyhint="next" placeholder="(27) 99999-8888" required aria-describedby="erro-telefone" />
+            <p class="erro" id="erro-telefone" role="alert"></p>
+          </div>
+
+          <div class="campo">
+            <label for="email" class="rotulo">E-mail <span class="opcional">(opcional)</span></label>
+            <input id="email" name="email" class="entrada" type="email" inputmode="email" autocomplete="email"
+              autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="done"
+              aria-describedby="erro-email" />
+            <p class="erro" id="erro-email" role="alert"></p>
+          </div>
+
+          <!-- Armadilha para robôs: invisível para pessoas e leitores de tela -->
+          <div class="armadilha" aria-hidden="true">
+            <label for="site">Não preencha este campo</label>
+            <input id="site" name="site" type="text" tabindex="-1" autocomplete="off" />
+          </div>
+
+          <label class="consentimento" id="bloco-consentimento" hidden>
+            <input type="checkbox" id="consentimento" aria-describedby="erro-consentimento" />
+            <span>Concordo com o tratamento dos meus dados para receber o contato da CAIS sobre meu planejamento.</span>
+          </label>
+          <p class="erro" id="erro-consentimento" role="alert"></p>
+
+          <p class="privacidade" id="aviso-privacidade">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z" /></svg>
+            <span>Usaremos seus dados apenas para que a equipe da CAIS entre em contato sobre seu planejamento.
+              Saiba mais na nossa <a id="link-politica" href="#" target="_blank" rel="noopener">Política de privacidade</a>.</span>
+          </p>
+
+          <p class="alerta" id="alerta-envio" role="alert" hidden></p>
+          <button type="submit" class="botao" id="concluir">
+            <span class="giro" aria-hidden="true"></span>
+            <span class="botao-texto">Concluir</span>
+          </button>
+        </form>
+      </section>
+
+      <!-- Finalização -->
+      <section class="tela" data-tela="sucesso" aria-labelledby="t-sucesso" hidden>
+        <div class="selo" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+        </div>
+        <h2 class="titulo" id="t-sucesso" tabindex="-1">Recebemos suas respostas</h2>
+        <p class="apoio">Obrigado por compartilhar seus planos. Nossa equipe entrará em contato para conversar com você.</p>
+        <section class="resumo" aria-labelledby="t-resumo">
+          <h3 class="resumo-titulo" id="t-resumo">Seu planejamento informado</h3>
+          <dl id="resumo"></dl>
+        </section>
+      </section>
+
+      <!-- Link indisponível -->
+      <section class="tela" data-tela="indisponivel" aria-labelledby="t-indisponivel" hidden>
+        <h1 class="titulo" id="t-indisponivel" tabindex="-1">Este link não está mais disponível</h1>
+        <p class="apoio" id="indisponivel-texto">O endereço que você acessou foi encerrado ou não existe.</p>
+        <a class="botao" id="seguir-direto" href="/planejamento/">Responder mesmo assim</a>
+        <a class="link-discreto" href="/">Conhecer a Cais Investimentos</a>
+      </section>
+    </main>
+  </div>
+
+  <script src="/planejamento/config.js"></script>
+  <script src="/planejamento/vendor/libphonenumber-min.js" defer></script>
+  <script src="/planejamento/js/nucleo.js" defer></script>
+  <script src="/planejamento/js/servicos.js" defer></script>
+  <script src="/planejamento/js/app.js" defer></script>
+</body>
+</html>
