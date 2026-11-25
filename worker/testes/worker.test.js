@@ -17,6 +17,7 @@ function corpoNavegador(extra = {}) {
     link: "a7k2m9",
     pessoa: { nome: "  Ana   Souza ", telefone: "+5527999998888", email: "ana+inv@exemplo.com" },
     respostas: {
+      canal: "indicacao_assessor",
       patrimonio: "acima_500k_ate_1m",
       experiencia: "acima_3m_ate_12m",
       aporte: "acima_10_ate_20",
@@ -27,7 +28,7 @@ function corpoNavegador(extra = {}) {
     },
     utm: { utm_source: "instagram", utm_medium: "stories" },
     envio: {
-      form_versao: "planejamento-v2",
+      form_versao: "planejamento-v3",
       privacidade_versao: "2026-11-30",
       duracao_segundos: 94,
       dispositivo: "mobile",
@@ -93,7 +94,7 @@ describe("POST /planejamento/api/envios", () => {
       campos: {
         dispositivo: "mobile",
         duracao_segundos: 94,
-        form_versao: "planejamento-v2",
+        form_versao: "planejamento-v3",
         link_de_captacao: "a7k2m9",
         patrimonio_faixa: "acima_500k_ate_1m",
         privacidade_versao: "2026-11-30",
@@ -103,6 +104,7 @@ describe("POST /planejamento/api/envios", () => {
         utm_source: "instagram",
       },
       respostas: [
+        { pergunta: "Através de qual canal você conheceu a Cais Investimentos?", resposta: "Indicação de um assessor" },
         { pergunta: "Qual é o seu patrimônio atual?", resposta: "Acima de R$ 500 mil até R$ 1 milhão" },
         { pergunta: "Há quanto tempo você investe regularmente?", resposta: "Acima de 3 meses até 12 meses" },
         { pergunta: "Quanto da sua renda você consegue investir todos os meses?", resposta: "Acima de 10% até 20%" },
@@ -167,17 +169,28 @@ describe("POST /planejamento/api/envios", () => {
     expect(r.headers.get("Retry-After")).toBe("7");
   });
 
-  it("acesso direto, e-mail vazio e 'Ainda não sei': chaves omitidas, resposta legível", async () => {
+  it("e-mail ausente ou vazio: 400 pessoa.email (e-mail obrigatório)", async () => {
+    for (const email of [undefined, "", "   "]) {
+      const corpo = corpoNavegador();
+      if (email === undefined) delete corpo.pessoa.email;
+      else corpo.pessoa.email = email;
+      const r = await enviar(corpo);
+      expect(r.status).toBe(400);
+      expect((await r.json()).erro.campos).toEqual(["pessoa.email"]);
+    }
+    expect(chamadas).toHaveLength(0);
+  });
+
+  it("acesso direto e 'Ainda não sei': chaves omitidas, resposta legível", async () => {
     const corpo = corpoNavegador();
     delete corpo.link;
     delete corpo.utm;
-    delete corpo.pessoa.email;
     delete corpo.envio.referencia_dominio;
     corpo.respostas.renda = "nao_sei";
     const r = await enviar(corpo);
     expect(r.status).toBe(200);
     const lead = JSON.parse(chamadas[0].corpo);
-    expect(lead.pessoa).toEqual({ nome: "Ana Souza", telefone: "+5527999998888" });
+    expect(lead.pessoa).toEqual({ nome: "Ana Souza", telefone: "+5527999998888", email: "ana+inv@exemplo.com" });
     expect(lead.respostas.at(-1)).toEqual({ pergunta: "Quanto você gostaria de receber por mês ao viver de renda?", resposta: "Ainda não sei" });
     expect(lead.respostas.map((x) => x.pergunta)).not.toContain("Renda anual desejada");
     for (const k of ["link_de_captacao", "utm_source", "site_de_origem"]) expect(lead.campos).not.toHaveProperty(k);

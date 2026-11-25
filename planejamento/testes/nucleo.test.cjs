@@ -130,6 +130,7 @@ test("moeda: máscara de digitação agrupa milhar e mantém o cursor", () => {
 
 test("e-mail opcional: aceita +, rejeita formato inválido, ignora vazio", () => {
   assert.deepEqual(N.validarEmail("   "), { ok: true, valor: null });
+  assert.match(N.validarEmail("   ", true).erro, /Informe seu e-mail/);
   assert.equal(N.validarEmail(" ana+invest@exemplo.com.br ").valor, "ana+invest@exemplo.com.br");
   assert.match(N.validarEmail("ana@exemplo").erro, /Falta o final do e-mail/);
   assert.match(N.validarEmail("ana.exemplo.com").erro, /Falta o @/);

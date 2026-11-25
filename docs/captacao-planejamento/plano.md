@@ -126,7 +126,7 @@ JS puro, como o `evento-offshore`, sem framework. `libphonenumber-js` (build "mi
   - Os 5 exemplos da demanda resultam em `+5527999998888`.
   - Os testes cobrem DDD 55 (`55 99999-8888` vira `+5555999998888`).
   - Número estrangeiro recebe a mensagem "No momento atendemos apenas números do Brasil", se a operação for só BR.
-- **E-mail:** opcional, trim, validação RFC-pragmática que aceita `+`.
+- **E-mail:** obrigatório (segundo canal de contato, pedido do Raul em 25/11/2026), trim, validação RFC-pragmática que aceita `+`.
 - **Moeda:** dígitos com formatação pt-BR (centavos implícitos). Colagem de "15.000", "15000,50" e "R$ 15.000,00" é interpretada corretamente. Valor deve ser > 0.
 - **Erros:** aparecem ao sair do campo ou ao clicar em Continuar, nunca durante a digitação. Ao mudar a idade atual, a idade-alvo é revalidada.
 

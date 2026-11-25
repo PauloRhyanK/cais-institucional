@@ -50,9 +50,13 @@
   // ------------------------------------------------------------------
   const EMAIL_PADRAO = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/;
 
-  function validarEmail(bruto) {
+  function validarEmail(bruto, obrigatorio) {
     const valor = String(bruto == null ? "" : bruto).trim();
-    if (!valor) return { ok: true, valor: null };
+    if (!valor) {
+      return obrigatorio
+        ? { ok: false, erro: "Informe seu e-mail. Ele é nosso segundo canal de contato. Ex.: nome@exemplo.com." }
+        : { ok: true, valor: null };
+    }
     if (/\s/.test(valor)) return { ok: false, erro: "O e-mail não pode ter espaços. Ex.: nome@exemplo.com." };
     const arrobas = (valor.match(/@/g) || []).length;
     if (arrobas === 0) return { ok: false, erro: "Falta o @ no e-mail. Ex.: nome@exemplo.com." };

@@ -62,6 +62,9 @@
     casa: '<path d="M4 11l8-6 8 6"/><path d="M6 10v10h12V10"/><path d="M10 20v-5h4v5"/>',
     escudo: '<path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z"/>',
     relogio: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',
+    instagram: '<rect x="4" y="4" width="16" height="16" rx="4.5"/><circle cx="12" cy="12" r="3.6"/><circle cx="16.6" cy="7.4" r="0.6"/>',
+    pessoa: '<circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c0-3.9 3.1-6.5 7-6.5s7 2.6 7 6.5"/>',
+    pessoas: '<circle cx="9" cy="9" r="3"/><path d="M3.5 19c0-3.2 2.4-5.5 5.5-5.5s5.5 2.3 5.5 5.5"/><circle cx="16.5" cy="8" r="2.5"/><path d="M16 13.5c2.6 0 4.5 2 4.5 4.8"/>',
   };
 
   function iconeDaOpcao(p, opcao, indice) {
@@ -216,7 +219,7 @@
     dados.nome = nome.ok ? nome.valor : null;
     const tel = N.normalizarTelefone($("#telefone").value, lib, { apenasBrasil: cfg.APENAS_BRASIL !== false });
     dados.telefone_e164 = tel.ok ? tel.e164 : null;
-    const email = N.validarEmail($("#email").value);
+    const email = N.validarEmail($("#email").value, true);
     dados.email = email.ok ? email.valor : null;
     let consentimento = { ok: true };
     if (cfg.CONSENTIMENTO_EXPLICITO && !$("#consentimento").checked) {
@@ -488,12 +491,12 @@
     const regras = [
       ["nome", (el) => N.validarNome(el.value), (el, r) => r.ok && r.valor !== el.value && (el.value = r.valor)],
       ["telefone", (el) => N.normalizarTelefone(el.value, lib, { apenasBrasil: cfg.APENAS_BRASIL !== false }), () => {}],
-      ["email", (el) => N.validarEmail(el.value), (el, r) => r.ok && r.valor && r.valor !== el.value && (el.value = r.valor)],
+      ["email", (el) => N.validarEmail(el.value, true), (el, r) => r.ok && r.valor && r.valor !== el.value && (el.value = r.valor)],
     ];
     for (const [campo, validar, ajustar] of regras) {
       const el = $("#" + campo);
       el.addEventListener("blur", () => {
-        if (!el.value.trim() && campo !== "email") return;
+        if (!el.value.trim()) return;
         const r = validar(el);
         ajustar(el, r);
         aplicar(campo, r, true);

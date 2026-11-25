@@ -153,12 +153,9 @@ export function montarLead(corpo, _env, formulario = FORMULARIO) {
   if (!nome.ok) erros.push("pessoa.nome");
   const telefone = typeof p.telefone === "string" ? N.normalizarTelefone(p.telefone, lib, { apenasBrasil: true }) : { ok: false };
   if (!telefone.ok) erros.push("pessoa.telefone");
-  let email = null;
-  if (p.email !== undefined && p.email !== null) {
-    const r = typeof p.email === "string" ? N.validarEmail(p.email) : { ok: false };
-    if (!r.ok) erros.push("pessoa.email");
-    else email = r.valor;
-  }
+  const emailValidado = typeof p.email === "string" ? N.validarEmail(p.email, true) : { ok: false };
+  if (!emailValidado.ok) erros.push("pessoa.email");
+  const email = emailValidado.ok ? emailValidado.valor : null;
 
   // Respostas: validadas pergunta a pergunta, na ordem (para `minimoDe`). Chaves desconhecidas são ignoradas.
   const brutas = objeto(corpo.respostas);
