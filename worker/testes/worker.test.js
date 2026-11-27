@@ -17,7 +17,6 @@ function corpoNavegador(extra = {}) {
     link: "a7k2m9",
     pessoa: { nome: "  Ana   Souza ", telefone: "+5527999998888", email: "ana+inv@exemplo.com" },
     respostas: {
-      canal: "indicacao_assessor",
       patrimonio: "acima_500k_ate_1m",
       experiencia: "acima_3m_ate_12m",
       aporte: "acima_10_ate_20",
@@ -28,7 +27,7 @@ function corpoNavegador(extra = {}) {
     },
     utm: { utm_source: "instagram", utm_medium: "stories" },
     envio: {
-      form_versao: "planejamento-v3",
+      form_versao: "planejamento-v4",
       privacidade_versao: "2026-11-30",
       duracao_segundos: 94,
       dispositivo: "mobile",
@@ -94,7 +93,7 @@ describe("POST /planejamento/api/envios", () => {
       campos: {
         dispositivo: "mobile",
         duracao_segundos: 94,
-        form_versao: "planejamento-v3",
+        form_versao: "planejamento-v4",
         link_de_captacao: "a7k2m9",
         patrimonio_faixa: "acima_500k_ate_1m",
         privacidade_versao: "2026-11-30",
@@ -104,7 +103,6 @@ describe("POST /planejamento/api/envios", () => {
         utm_source: "instagram",
       },
       respostas: [
-        { pergunta: "Através de qual canal você conheceu a Cais Investimentos?", resposta: "Indicação de um assessor" },
         { pergunta: "Qual é o seu patrimônio atual?", resposta: "Acima de R$ 500 mil até R$ 1 milhão" },
         { pergunta: "Há quanto tempo você investe regularmente?", resposta: "Acima de 3 meses até 12 meses" },
         { pergunta: "Quanto da sua renda você consegue investir todos os meses?", resposta: "Acima de 10% até 20%" },

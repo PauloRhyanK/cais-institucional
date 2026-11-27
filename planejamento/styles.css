@@ -312,6 +312,53 @@ body[data-tela-atual="sucesso"] .etapa-atual {
     transform: scale(1.18);
   }
 }
+/* Autor na capa (@camilojoga10) */
+.autor-capa {
+  margin-top: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 14px 5px 5px;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: 999px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  width: fit-content;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
+}
+.autor-capa picture {
+  display: flex;
+  align-items: center;
+}
+.autor-capa-foto {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid var(--ouro-suave);
+  display: block;
+}
+.autor-capa-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+.autor-capa-nome {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--texto);
+  letter-spacing: 0.01em;
+}
+.autor-capa-papel {
+  font-size: 0.6875rem;
+  color: var(--ouro-suave);
+  font-weight: 400;
+}
+.tela[data-tela="inicio"] .botao {
+  margin-top: 22px;
+}
+
 .tempo {
   margin-top: 14px;
   display: flex;

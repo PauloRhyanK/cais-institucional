@@ -38,7 +38,7 @@
   else raiz.CAIS_PLANEJAMENTO_FORMULARIO = formulario;
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   return {
-    versao: "planejamento-v3",
+    versao: "planejamento-v4",
 
     inicio: {
       sobretitulo: "Planejamento financeiro",
@@ -48,17 +48,6 @@
     },
 
     perguntas: [
-      {
-        chave: "canal",
-        tipo: "escolha",
-        pergunta: "Através de qual canal você conheceu a Cais Investimentos?",
-        resumo: "Como conheceu a Cais",
-        opcoes: [
-          { chave: "instagram_camillojoga10", rotulo: "Instagram do @camillojoga10", icone: "instagram" },
-          { chave: "indicacao_assessor", rotulo: "Indicação de um assessor", icone: "pessoa" },
-          { chave: "indicacao_cliente", rotulo: "Indicação de outro cliente", icone: "pessoas" },
-        ],
-      },
       {
         chave: "patrimonio",
         tipo: "escolha",
