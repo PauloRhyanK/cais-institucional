@@ -260,10 +260,19 @@ body[data-tela-atual="sucesso"] .etapa-atual {
 }
 
 /* ---------- Tela inicial ---------- */
+.tela[data-tela="inicio"] {
+  align-items: center;
+  text-align: center;
+}
+.tela[data-tela="inicio"] .apoio {
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
 .ilustracao {
   width: 100%;
   max-width: 300px;
-  margin: 0 0 28px;
+  margin: 0 auto 28px;
   overflow: visible;
 }
 .ilustracao-grade line {
@@ -314,29 +323,30 @@ body[data-tela-atual="sucesso"] .etapa-atual {
 }
 /* Autor na capa (@camilojoga10) */
 .autor-capa {
-  margin-top: 20px;
+  margin: 22px auto 0;
   display: inline-flex;
   align-items: center;
-  gap: 12px;
-  padding: 5px 14px 5px 5px;
+  gap: 14px;
+  padding: 7px 20px 7px 7px;
   background: var(--superficie);
   border: 1px solid var(--borda);
   border-radius: 999px;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   width: fit-content;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.2);
+  text-align: left;
 }
 .autor-capa picture {
   display: flex;
   align-items: center;
 }
 .autor-capa-foto {
-  width: 36px;
-  height: 36px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   object-fit: cover;
-  border: 1.5px solid var(--ouro-suave);
+  border: 2px solid var(--ouro-suave);
   display: block;
 }
 .autor-capa-info {
@@ -345,18 +355,22 @@ body[data-tela-atual="sucesso"] .etapa-atual {
   line-height: 1.25;
 }
 .autor-capa-nome {
-  font-size: 0.8125rem;
+  font-size: 0.9375rem;
   font-weight: 600;
   color: var(--texto);
   letter-spacing: 0.01em;
 }
 .autor-capa-papel {
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   color: var(--ouro-suave);
   font-weight: 400;
 }
 .tela[data-tela="inicio"] .botao {
-  margin-top: 22px;
+  margin-top: 24px;
+  align-self: center;
+}
+.tela[data-tela="inicio"] .tempo {
+  justify-content: center;
 }
 
 .tempo {
