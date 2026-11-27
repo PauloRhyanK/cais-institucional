@@ -28,6 +28,7 @@
     "esbuild@0.28.2": true
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "libphonenumber-js": "^1.13.17"
   }
 }

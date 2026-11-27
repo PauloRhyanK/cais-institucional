@@ -6,11 +6,11 @@
  * Consulta e exclusão (aba "Gym Club" do painel /eventos/admin/):
  *   GET    /gymclub/api/admin/cadastros
  *   DELETE /gymclub/api/admin/cadastros/{id}
- * Exigem a sessão do painel (Authorization: Bearer <token>), conferida no mesmo
- * Supabase que faz o login do painel.
+ * Exigem a sessão do painel (Authorization: Bearer <token>), ver worker/eventos.js.
  */
 import * as moduloNucleo from "../planejamento/js/nucleo.js";
 import { parsePhoneNumberFromString } from "libphonenumber-js/min";
+import { sessaoValida } from "./eventos.js";
 
 const N = (moduloNucleo && moduloNucleo.default) || globalThis.CaisPlanejamento;
 const lib = { parsePhoneNumberFromString };
@@ -36,10 +36,6 @@ const ESQUEMA = [
    )`,
   `CREATE INDEX IF NOT EXISTS idx_cadastros_eventos_evento ON cadastros_eventos (evento, recebido_em)`,
 ];
-
-// Mesmo projeto e chave pública que o painel do Evento Offshore já usa no navegador.
-const SUPABASE_URL = "https://laukfwrsdvchozgicjxm.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhdWtmd3JzZHZjaG96Z2ljanhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM4MTc0MDEsImV4cCI6MjEwOTM5MzQwMX0.YL1UZkZlPFjWlpJkMUZjW-y7xU4c-D1KXYtQIiFkzMo";
 
 export async function atenderGymclub(request, url, env) {
   if (url.pathname.startsWith(PREFIXO_GYMCLUB + "/admin/")) return atenderAdmin(request, url, env);
@@ -95,7 +91,7 @@ async function atenderAdmin(request, url, env) {
 
   const origem = request.headers.get("Origin");
   if (origem && origem !== url.origin) return json(403, { erro: { codigo: "ORIGEM_NAO_PERMITIDA" } });
-  if (!(await sessaoDoPainelValida(request))) return json(401, { erro: { codigo: "NAO_AUTORIZADO" } });
+  if (!(await sessaoValida(request, env))) return json(401, { erro: { codigo: "NAO_AUTORIZADO" } });
   if (!env.DB) return json(503, { erro: { codigo: "INDISPONIVEL" } });
 
   try {
@@ -115,25 +111,6 @@ async function atenderAdmin(request, url, env) {
   } catch (e) {
     if (/no such table/i.test(String(e && e.message))) return json(200, excluir ? { excluido: true } : { cadastros: [] });
     throw e;
-  }
-}
-
-/** A sessão vale se o Supabase do painel aceitar o token (a mesma chamada que o painel faz ao abrir). */
-async function sessaoDoPainelValida(request) {
-  const m = /^Bearer\s+(\S{8,512})$/.exec(request.headers.get("Authorization") || "");
-  if (!m) return false;
-  try {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/admin_list_confirmacoes`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
-      body: JSON.stringify({ p_token: m[1] }),
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!r.ok) return false;
-    const corpo = await r.json();
-    return !!corpo && corpo.ok === true;
-  } catch (_) {
-    return false;
   }
 }
 

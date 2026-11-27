@@ -15,6 +15,7 @@ import * as moduloNucleo from "../planejamento/js/nucleo.js";
 import * as moduloPerguntas from "../planejamento/perguntas.js";
 import { parsePhoneNumberFromString } from "libphonenumber-js/min";
 import { atenderGymclub, PREFIXO_GYMCLUB } from "./gymclub.js";
+import { atenderEventos, PREFIXOS_EVENTOS } from "./eventos.js";
 
 // nucleo.js e perguntas.js são UMD (scripts clássicos no navegador): conforme o empacotador,
 // chegam como CommonJS (default) ou registram um global.
@@ -48,9 +49,10 @@ export function _definirEspera(fn) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    if (url.pathname.startsWith(PREFIXO_GYMCLUB + "/")) {
+    const deEventos = PREFIXOS_EVENTOS.some((p) => url.pathname.startsWith(p));
+    if (deEventos || url.pathname.startsWith(PREFIXO_GYMCLUB + "/")) {
       try {
-        return await atenderGymclub(request, url, env);
+        return await (deEventos ? atenderEventos : atenderGymclub)(request, url, env);
       } catch (_) {
         return json(503, { erro: { codigo: "INDISPONIVEL" } });
       }

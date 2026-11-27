@@ -1,10 +1,7 @@
 (function () {
   "use strict";
 
-  var SUPABASE_URL = "https://laukfwrsdvchozgicjxm.supabase.co";
-  var SUPABASE_ANON_KEY =
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhdWtmd3JzZHZjaG96Z2ljanhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM4MTc0MDEsImV4cCI6MjEwOTM5MzQwMX0.YL1UZkZlPFjWlpJkMUZjW-y7xU4c-D1KXYtQIiFkzMo";
-
+  // Tudo vem do Worker do próprio site (D1): /eventos/api e /gymclub/api.
   var STORAGE_TOKEN_KEY = "cais_admin_session_token";
   var STORAGE_USER_KEY = "cais_admin_username";
 
@@ -65,16 +62,6 @@
     return e164 || "";
   }
 
-  async function callGymclub(method, path) {
-    var res = await fetch("/gymclub/api/admin/cadastros" + (path || ""), {
-      method: method,
-      headers: { Authorization: "Bearer " + getSessionToken() }
-    });
-    if (res.status === 401) throw new Error("Sua sessão expirou. Faça login novamente.");
-    if (!res.ok) throw new Error("Erro na comunicação com o servidor (" + res.status + ").");
-    return await res.json();
-  }
-
   // Cada aba: de onde vêm os dados, colunas (tela, CSV e PDF) e textos.
   var TABS = {
     offshore: {
@@ -85,18 +72,11 @@
       emptyText: "Nenhuma confirmação encontrada.",
       deleteWhat: "a confirmação",
       csvName: "confirmacoes-evento-offshore",
-      load: async function (token) {
-        var res = await callRpc("admin_list_confirmacoes", { p_token: token });
-        if (!res.ok) {
-          var err = new Error(res.error || "Sessão expirada.");
-          err.sessao = true;
-          throw err;
-        }
-        return res.data || [];
+      load: async function () {
+        return (await callApi("GET", "/eventos/api/offshore/confirmacoes")).confirmacoes || [];
       },
-      remove: async function (token, id) {
-        var res = await callRpc("admin_delete_confirmacao", { p_token: token, p_id: id });
-        if (!res.ok) throw new Error(res.error || "Erro ao excluir registro.");
+      remove: async function (_token, id) {
+        await callApi("DELETE", "/eventos/api/offshore/confirmacoes/" + encodeURIComponent(id));
       },
       searchText: function (r) {
         return [r.nome, r.email, r.telefone, r.cpf].join(" ");
@@ -121,10 +101,10 @@
       deleteWhat: "o cadastro",
       csvName: "cadastros-gym-club",
       load: async function () {
-        return (await callGymclub("GET")).cadastros || [];
+        return (await callApi("GET", "/gymclub/api/admin/cadastros")).cadastros || [];
       },
       remove: async function (_token, id) {
-        await callGymclub("DELETE", "/" + encodeURIComponent(id));
+        await callApi("DELETE", "/gymclub/api/admin/cadastros/" + encodeURIComponent(id));
       },
       searchText: function (r) {
         return [r.nome, r.email, r.telefone, formatPhone(r.telefone), r.observacoes, r.colaborador].join(" ");
@@ -186,28 +166,19 @@
     });
   });
 
-  async function callRpc(fnName, params) {
-    var res = await fetch(SUPABASE_URL + "/rest/v1/rpc/" + fnName, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: "Bearer " + SUPABASE_ANON_KEY
-      },
-      body: JSON.stringify(params || {})
-    });
-
-    if (!res.ok) {
-      var err = null;
-      try {
-        err = await res.json();
-      } catch (_) {}
-      throw new Error(
-        (err && (err.message || err.details)) ||
-          "Erro na comunicação com o servidor (" + res.status + ")."
-      );
+  async function callApi(method, path, body) {
+    var headers = {};
+    var token = getSessionToken();
+    if (token) headers.Authorization = "Bearer " + token;
+    if (body) headers["Content-Type"] = "application/json";
+    var res = await fetch(path, { method: method, headers: headers, body: body ? JSON.stringify(body) : undefined });
+    if (res.status === 401) {
+      var err = new Error(path === "/eventos/api/login" ? "Usuário ou senha incorretos." : "Sua sessão expirou. Faça login novamente.");
+      err.sessao = true;
+      throw err;
     }
-
+    if (res.status === 429) throw new Error("Muitas tentativas. Aguarde um minuto e tente de novo.");
+    if (!res.ok) throw new Error("Erro na comunicação com o servidor (" + res.status + ").");
     return await res.json();
   }
 
@@ -338,15 +309,15 @@
       showDashboard();
     } catch (err) {
       if (tabAtLoad !== currentTab) return;
-      if (tabAtLoad === "offshore" || /sess[ãa]o/i.test(err.message || "")) {
+      if (err.sessao) {
         clearSession();
-        showLogin(err.message || "Sua sessão expirou. Faça login novamente.");
+        showLogin(err.message);
       } else {
-        // Falha só da lista da Gym Club: mantém o login e avisa.
+        // Falha de rede ou do servidor: mantém o login e avisa.
         allRecords = [];
         renderTable([]);
         showDashboard();
-        alert("Não foi possível carregar os cadastros da Gym Club: " + (err.message || "erro inesperado"));
+        alert("Não foi possível carregar a lista: " + (err.message || "erro inesperado"));
       }
     } finally {
       if (refreshBtn) refreshBtn.disabled = false;
@@ -396,16 +367,9 @@
       }
 
       try {
-        var res = await callRpc("admin_login", {
-          p_username: u,
-          p_password: p
-        });
-
-        if (!res.ok) {
-          throw new Error(res.error || "Usuário ou senha incorretos.");
-        }
-
-        saveSession(res.token, res.username || u);
+        clearSession();
+        var res = await callApi("POST", "/eventos/api/login", { usuario: u, senha: p });
+        saveSession(res.token, res.usuario || u);
         await loadData();
       } catch (err) {
         loginAlert.textContent = err.message || "Erro ao efetuar login.";

@@ -27,12 +27,6 @@
   var confirmVenue = document.getElementById("confirm-venue");
   var calendarBtn = document.getElementById("add-calendar-btn");
 
-  // Configurações padrão resilientes (evita falhas se config.js for bloqueado por ad-blocker)
-  var DEFAULT_SUPABASE_URL = "https://laukfwrsdvchozgicjxm.supabase.co";
-  var DEFAULT_SUPABASE_KEY =
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhdWtmd3JzZHZjaG96Z2ljanhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM4MTc0MDEsImV4cCI6MjEwOTM5MzQwMX0.YL1UZkZlPFjWlpJkMUZjW-y7xU4c-D1KXYtQIiFkzMo";
-  var DEFAULT_SUPABASE_TABLE = "evento_offshore_confirmacoes";
-
   // ---------------------------------------------------------------------------
   // 1. Personalização opcional via query param (?nome=...)
   // ---------------------------------------------------------------------------
@@ -313,47 +307,26 @@
   });
 
   // ---------------------------------------------------------------------------
-  // 4. Envio ao Banco de Dados (Supabase REST API)
+  // 4. Envio ao Banco de Dados (Worker do site -> D1)
   // ---------------------------------------------------------------------------
   async function persistLead(payload) {
     var cfg = window.CAIS_FORM_CONFIG || {};
-    var supabaseUrl = String(cfg.SUPABASE_URL || DEFAULT_SUPABASE_URL).trim().replace(/\/+$/, "");
-    var supabaseKey = String(
-      cfg.SUPABASE_ANON_KEY || cfg.SUPABASE_PUBLISHABLE_KEY || DEFAULT_SUPABASE_KEY
-    ).trim();
-    var table = String(cfg.SUPABASE_TABLE || DEFAULT_SUPABASE_TABLE).trim();
     var webhookUrl = String(cfg.WEBHOOK_URL || "").trim();
 
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error("Configuração do formulário indisponível no momento.");
-    }
-
-    var endpoint = supabaseUrl + "/rest/v1/" + encodeURIComponent(table);
-    var response = await fetch(endpoint, {
+    var response = await fetch("/evento-offshore/api/confirmacoes", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: supabaseKey,
-        Authorization: "Bearer " + supabaseKey,
-        Prefer: "return=minimal"
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
 
     var alreadyConfirmed = false;
 
     if (!response.ok) {
-      var errBody = null;
-      try {
-        errBody = await response.json();
-      } catch (_) {}
-
-      if (response.status === 409 || (errBody && errBody.code === "23505")) {
+      if (response.status === 409) {
         alreadyConfirmed = true;
       } else {
         throw new Error(
-          (errBody && (errBody.message || errBody.details)) ||
-            "Erro ao registrar confirmação (" + response.status + ")."
+          "Erro ao registrar confirmação (" + response.status + ")."
         );
       }
     }

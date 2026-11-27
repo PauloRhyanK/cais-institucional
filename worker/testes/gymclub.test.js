@@ -1,5 +1,6 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import { env } from "cloudflare:test";
+import bcrypt from "bcryptjs";
 import worker from "../index.js";
 
 const SITE = "https://caisinvestimentos.com.br";
@@ -75,58 +76,53 @@ describe("POST /gymclub/api/cadastros", () => {
 });
 
 describe("/gymclub/api/admin/cadastros", () => {
-  afterEach(() => vi.restoreAllMocks());
+  const ENV = { ...env, DB: env.DB };
+  let sessao;
+  beforeAll(async () => {
+    const entrar = () =>
+      worker.fetch(
+      new Request(SITE + "/eventos/api/login", {
+        method: "POST",
+        headers: { Origin: SITE, "Content-Type": "application/json" },
+        body: JSON.stringify({ usuario: "admin", senha: "senha-de-teste" }),
+      }),
+        ENV,
+        {}
+      );
+    await entrar(); // cria as tabelas
+    await env.DB.prepare("INSERT OR REPLACE INTO painel_usuarios (usuario, senha_hash) VALUES ('admin', ?)").bind(bcrypt.hashSync("senha-de-teste", 6)).run();
+    sessao = (await (await entrar()).json()).token;
+  });
 
-  /** Simula o Supabase do painel: só o token "sessao-valida" é aceito. */
-  function simularPainel() {
-    return vi.spyOn(globalThis, "fetch").mockImplementation(async (url, opcoes) => {
-      expect(String(url)).toMatch(/supabase\.co\/rest\/v1\/rpc\/admin_list_confirmacoes$/);
-      const ok = JSON.parse(opcoes.body).p_token === "sessao-valida";
-      return new Response(JSON.stringify(ok ? { ok: true, data: [] } : { ok: false, error: "Sessão expirada." }), { status: 200 });
-    });
-  }
-  function admin(caminho, { metodo = "GET", token } = {}) {
-    const headers = { Origin: SITE };
+  function admin(caminho, { metodo = "GET", token, origem = SITE } = {}) {
+    const headers = { Origin: origem };
     if (token) headers.Authorization = `Bearer ${token}`;
-    return worker.fetch(new Request(SITE + "/gymclub/api/admin/cadastros" + caminho, { method: metodo, headers }), env, {});
+    return worker.fetch(new Request(SITE + "/gymclub/api/admin/cadastros" + caminho, { method: metodo, headers }), ENV, {});
   }
 
   it("sem sessão válida do painel não lista nem exclui", async () => {
-    const painel = simularPainel();
     expect((await admin("")).status).toBe(401);
-    expect(painel).not.toHaveBeenCalled();
-    expect((await admin("", { token: "sessao-vencida" })).status).toBe(401);
-    expect((await admin("/" + ID, { metodo: "DELETE", token: "sessao-vencida" })).status).toBe(401);
+    expect((await admin("", { token: "token-qualquer" })).status).toBe(401);
+    const adulterado = sessao.replace(/.$/, (c) => (c === "0" ? "1" : "0"));
+    expect((await admin("/" + ID, { metodo: "DELETE", token: adulterado })).status).toBe(401);
     expect(await linhas()).toHaveLength(2);
   });
 
-  it("Supabase fora do ar: nega o acesso", async () => {
-    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("rede"));
-    expect((await admin("", { token: "sessao-valida" })).status).toBe(401);
-  });
-
   it("com sessão válida lista os cadastros e exclui por id", async () => {
-    simularPainel();
-    const r = await admin("", { token: "sessao-valida" });
+    const r = await admin("", { token: sessao });
     expect(r.status).toBe(200);
     const { cadastros } = await r.json();
     expect(cadastros.map((c) => c.nome).sort()).toEqual(["Ana Souza", "Bruno Lima"]);
     expect(cadastros.find((c) => c.id === ID)).toMatchObject({ colaborador: "Victor Kiefer", telefone: "+5527999998888" });
 
-    expect((await admin("/nao-e-uuid", { metodo: "DELETE", token: "sessao-valida" })).status).toBe(400);
-    const apagar = await admin("/" + ID, { metodo: "DELETE", token: "sessao-valida" });
+    expect((await admin("/nao-e-uuid", { metodo: "DELETE", token: sessao })).status).toBe(400);
+    const apagar = await admin("/" + ID, { metodo: "DELETE", token: sessao });
     expect(await apagar.json()).toEqual({ excluido: true });
     expect((await linhas()).map((l) => l.id)).toEqual([ID2]);
   });
 
   it("recusa outra origem e outro método", async () => {
-    simularPainel();
-    const fora = await worker.fetch(
-      new Request(SITE + "/gymclub/api/admin/cadastros", { headers: { Origin: "https://outro.site", Authorization: "Bearer sessao-valida" } }),
-      env,
-      {}
-    );
-    expect(fora.status).toBe(403);
-    expect((await admin("", { metodo: "POST", token: "sessao-valida" })).status).toBe(405);
+    expect((await admin("", { token: sessao, origem: "https://outro.site" })).status).toBe(403);
+    expect((await admin("", { metodo: "POST", token: sessao })).status).toBe(405);
   });
 });

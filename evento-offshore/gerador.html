@@ -415,23 +415,15 @@
         copyText(buildMessage("", masterUrl), "Mensagem padrão copiada!");
       });
 
-      // Cria token nominal no Supabase
+      // Cria token nominal no banco (Worker do site -> D1)
       async function createNominalToken(nome, slug) {
-        var cfg = window.CAIS_FORM_CONFIG || {};
-        var supabaseUrl = String(cfg.SUPABASE_URL || "").trim().replace(/\/+$/, "");
-        var supabaseKey = String(cfg.SUPABASE_PUBLISHABLE_KEY || "").trim();
-
-        var res = await fetch(supabaseUrl + "/rest/v1/rpc/criar_convite_nominal", {
+        var res = await fetch("/evento-offshore/api/convites", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            apikey: supabaseKey,
-            Authorization: "Bearer " + supabaseKey
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            p_token_mestre: MASTER_TOKEN,
-            p_nome: nome,
-            p_token_customizado: slug || null
+            token_mestre: MASTER_TOKEN,
+            nome: nome,
+            token_customizado: slug || null
           })
         });
 
