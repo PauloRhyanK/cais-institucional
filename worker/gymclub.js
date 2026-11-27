@@ -2,6 +2,12 @@
  * Captação na Gym Club — cadastro feito pelos colaboradores no evento.
  * POST /gymclub/api/cadastros grava no D1 (binding DB, tabela cadastros_eventos).
  * A tabela é criada sozinha no primeiro cadastro (ESQUEMA abaixo).
+ *
+ * Consulta e exclusão (aba "Gym Club" do painel /eventos/admin/):
+ *   GET    /gymclub/api/admin/cadastros
+ *   DELETE /gymclub/api/admin/cadastros/{id}
+ * Exigem a sessão do painel (Authorization: Bearer <token>), conferida no mesmo
+ * Supabase que faz o login do painel.
  */
 import * as moduloNucleo from "../planejamento/js/nucleo.js";
 import { parsePhoneNumberFromString } from "libphonenumber-js/min";
@@ -31,7 +37,12 @@ const ESQUEMA = [
   `CREATE INDEX IF NOT EXISTS idx_cadastros_eventos_evento ON cadastros_eventos (evento, recebido_em)`,
 ];
 
+// Mesmo projeto e chave pública que o painel do Evento Offshore já usa no navegador.
+const SUPABASE_URL = "https://laukfwrsdvchozgicjxm.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhdWtmd3JzZHZjaG96Z2ljanhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM4MTc0MDEsImV4cCI6MjEwOTM5MzQwMX0.YL1UZkZlPFjWlpJkMUZjW-y7xU4c-D1KXYtQIiFkzMo";
+
 export async function atenderGymclub(request, url, env) {
+  if (url.pathname.startsWith(PREFIXO_GYMCLUB + "/admin/")) return atenderAdmin(request, url, env);
   if (url.pathname !== PREFIXO_GYMCLUB + "/cadastros") return json(404, { erro: { codigo: "NAO_ENCONTRADO" } });
   if (request.method !== "POST") return json(405, { erro: { codigo: "METODO_NAO_PERMITIDO" } }, { Allow: "POST" });
 
@@ -73,6 +84,57 @@ export async function atenderGymclub(request, url, env) {
     await gravar();
   }
   return json(200, { recebido: true });
+}
+
+async function atenderAdmin(request, url, env) {
+  const resto = url.pathname.slice((PREFIXO_GYMCLUB + "/admin").length);
+  const excluir = /^\/cadastros\/([^/]+)$/.exec(resto);
+  if (resto !== "/cadastros" && !excluir) return json(404, { erro: { codigo: "NAO_ENCONTRADO" } });
+  const esperado = excluir ? "DELETE" : "GET";
+  if (request.method !== esperado) return json(405, { erro: { codigo: "METODO_NAO_PERMITIDO" } }, { Allow: esperado });
+
+  const origem = request.headers.get("Origin");
+  if (origem && origem !== url.origin) return json(403, { erro: { codigo: "ORIGEM_NAO_PERMITIDA" } });
+  if (!(await sessaoDoPainelValida(request))) return json(401, { erro: { codigo: "NAO_AUTORIZADO" } });
+  if (!env.DB) return json(503, { erro: { codigo: "INDISPONIVEL" } });
+
+  try {
+    if (excluir) {
+      const id = excluir[1].toLowerCase();
+      if (!UUID_V4.test(id)) return json(400, { erro: { codigo: "ID_INVALIDO" } });
+      await env.DB.prepare("DELETE FROM cadastros_eventos WHERE id = ? AND evento = ?").bind(id, EVENTO).run();
+      return json(200, { excluido: true });
+    }
+    const { results } = await env.DB.prepare(
+      `SELECT id, colaborador, nome, telefone, email, observacoes, criado_em, recebido_em
+       FROM cadastros_eventos WHERE evento = ? ORDER BY recebido_em DESC`
+    )
+      .bind(EVENTO)
+      .all();
+    return json(200, { cadastros: results });
+  } catch (e) {
+    if (/no such table/i.test(String(e && e.message))) return json(200, excluir ? { excluido: true } : { cadastros: [] });
+    throw e;
+  }
+}
+
+/** A sessão vale se o Supabase do painel aceitar o token (a mesma chamada que o painel faz ao abrir). */
+async function sessaoDoPainelValida(request) {
+  const m = /^Bearer\s+(\S{8,512})$/.exec(request.headers.get("Authorization") || "");
+  if (!m) return false;
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/admin_list_confirmacoes`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+      body: JSON.stringify({ p_token: m[1] }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!r.ok) return false;
+    const corpo = await r.json();
+    return !!corpo && corpo.ok === true;
+  } catch (_) {
+    return false;
+  }
 }
 
 export function montarCadastro(corpo) {

@@ -5,7 +5,7 @@
 
 @font-face {
   font-family: 'General Sans';
-  src: url('../fonts/GeneralSans-Regular.woff2') format('woff2');
+  src: url('/evento-offshore/fonts/GeneralSans-Regular.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -13,7 +13,7 @@
 
 @font-face {
   font-family: 'General Sans';
-  src: url('../fonts/GeneralSans-Medium.woff2') format('woff2');
+  src: url('/evento-offshore/fonts/GeneralSans-Medium.woff2') format('woff2');
   font-weight: 500;
   font-style: normal;
   font-display: swap;
@@ -21,7 +21,7 @@
 
 @font-face {
   font-family: 'General Sans';
-  src: url('../fonts/GeneralSans-Semibold.woff2') format('woff2');
+  src: url('/evento-offshore/fonts/GeneralSans-Semibold.woff2') format('woff2');
   font-weight: 600;
   font-style: normal;
   font-display: swap;
@@ -313,6 +313,49 @@ body::before {
 }
 
 /* Stats and Toolbar */
+.tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+  overflow-x: auto;
+}
+
+.tab {
+  min-height: 42px;
+  padding: 8px 16px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: var(--branco);
+}
+
+.tab.is-active {
+  color: var(--ouro-suave);
+  border-bottom-color: var(--ouro-suave);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--ouro-suave);
+  outline-offset: -2px;
+}
+
+.table-note {
+  display: block;
+  max-width: 320px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .stats-bar {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -636,6 +679,7 @@ body::before {
   }
 
   body::before,
+  .tabs,
   .top-navbar .nav-actions,
   .toolbar,
   .btn-delete,
@@ -843,6 +887,42 @@ body::before {
   .data-table td:last-child {
     display: none !important;
     width: 0 !important;
+  }
+
+  /* Aba Gym Club: uma coluna a mais (Observações e Cadastrado por) */
+  .data-table--gymclub th:nth-child(2),
+  .data-table--gymclub td:nth-child(2) {
+    width: 19% !important;
+  }
+
+  .data-table--gymclub th:nth-child(3),
+  .data-table--gymclub td:nth-child(3) {
+    width: 14% !important;
+  }
+
+  .data-table--gymclub th:nth-child(4),
+  .data-table--gymclub td:nth-child(4) {
+    width: 19% !important;
+  }
+
+  .data-table--gymclub th:nth-child(5),
+  .data-table--gymclub td:nth-child(5) {
+    width: 20% !important;
+  }
+
+  .data-table--gymclub th:nth-child(6),
+  .data-table--gymclub td:nth-child(6) {
+    width: 12% !important;
+  }
+
+  .data-table--gymclub th:nth-child(7),
+  .data-table--gymclub td:nth-child(7) {
+    display: table-cell !important;
+    width: 12% !important;
+  }
+
+  .table-note {
+    max-width: none !important;
   }
 
   .table-user-name {

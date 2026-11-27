@@ -37,6 +37,154 @@
   var allRecords = [];
   var filteredRecords = [];
   var pendingDeleteId = null;
+  var currentTab = "offshore";
+
+  function waLink(e164OrDigits, label) {
+    var digits = String(e164OrDigits || "").replace(/\D+/g, "");
+    if (!digits) return escapeHtml(label || "-");
+    if (digits.length <= 11) digits = "55" + digits;
+    return (
+      "<a class=\"table-link\" href=\"https://wa.me/" + digits + "\" target=\"_blank\" rel=\"noopener noreferrer\" title=\"Abrir no WhatsApp\">" +
+      escapeHtml(label) +
+      "<span class=\"wa-badge\">↗ WA</span>" +
+      "</a>"
+    );
+  }
+
+  function mailLink(email) {
+    if (!email) return "-";
+    return "<a class=\"table-link\" href=\"mailto:" + escapeHtml(email) + "\">" + escapeHtml(email) + "</a>";
+  }
+
+  // +5527999998888 -> (27) 99999-8888
+  function formatPhone(e164) {
+    var d = String(e164 || "").replace(/\D+/g, "");
+    if (d.length > 11 && d.indexOf("55") === 0) d = d.slice(2);
+    if (d.length === 11) return "(" + d.slice(0, 2) + ") " + d.slice(2, 7) + "-" + d.slice(7);
+    if (d.length === 10) return "(" + d.slice(0, 2) + ") " + d.slice(2, 6) + "-" + d.slice(6);
+    return e164 || "";
+  }
+
+  async function callGymclub(method, path) {
+    var res = await fetch("/gymclub/api/admin/cadastros" + (path || ""), {
+      method: method,
+      headers: { Authorization: "Bearer " + getSessionToken() }
+    });
+    if (res.status === 401) throw new Error("Sua sessão expirou. Faça login novamente.");
+    if (!res.ok) throw new Error("Erro na comunicação com o servidor (" + res.status + ").");
+    return await res.json();
+  }
+
+  // Cada aba: de onde vêm os dados, colunas (tela, CSV e PDF) e textos.
+  var TABS = {
+    offshore: {
+      subtitle: "Evento Offshore · Cais Investimentos",
+      statLabel: "Total de Convidados Confirmados",
+      printLabel: "convidados confirmados",
+      searchPlaceholder: "Buscar por nome, e-mail, telefone ou CPF...",
+      emptyText: "Nenhuma confirmação encontrada.",
+      deleteWhat: "a confirmação",
+      csvName: "confirmacoes-evento-offshore",
+      load: async function (token) {
+        var res = await callRpc("admin_list_confirmacoes", { p_token: token });
+        if (!res.ok) {
+          var err = new Error(res.error || "Sessão expirada.");
+          err.sessao = true;
+          throw err;
+        }
+        return res.data || [];
+      },
+      remove: async function (token, id) {
+        var res = await callRpc("admin_delete_confirmacao", { p_token: token, p_id: id });
+        if (!res.ok) throw new Error(res.error || "Erro ao excluir registro.");
+      },
+      searchText: function (r) {
+        return [r.nome, r.email, r.telefone, r.cpf].join(" ");
+      },
+      searchDigits: function (r) {
+        return String(r.telefone_numeros || "") + " " + String(r.cpf_numeros || "");
+      },
+      columns: [
+        { title: "Nome Completo", text: function (r) { return r.nome || ""; }, html: function (r) { return "<strong class=\"table-user-name\">" + escapeHtml(r.nome) + "</strong>"; } },
+        { title: "Telefone / WhatsApp", text: function (r) { return r.telefone || ""; }, html: function (r) { return waLink(r.telefone_numeros || r.telefone, r.telefone); } },
+        { title: "E-mail", text: function (r) { return r.email || ""; }, html: function (r) { return mailLink(r.email); } },
+        { title: "CPF", text: function (r) { return r.cpf || ""; }, html: function (r) { return escapeHtml(r.cpf || "-"); } },
+        { title: "Data de Confirmação", text: function (r) { return formatDate(r.created_at); } }
+      ]
+    },
+    gymclub: {
+      subtitle: "Captação na Gym Club · Cais Investimentos",
+      statLabel: "Total de Cadastros na Gym Club",
+      printLabel: "cadastros",
+      searchPlaceholder: "Buscar por nome, telefone, e-mail, observação ou colaborador...",
+      emptyText: "Nenhum cadastro encontrado.",
+      deleteWhat: "o cadastro",
+      csvName: "cadastros-gym-club",
+      load: async function () {
+        return (await callGymclub("GET")).cadastros || [];
+      },
+      remove: async function (_token, id) {
+        await callGymclub("DELETE", "/" + encodeURIComponent(id));
+      },
+      searchText: function (r) {
+        return [r.nome, r.email, r.telefone, formatPhone(r.telefone), r.observacoes, r.colaborador].join(" ");
+      },
+      searchDigits: function (r) {
+        return String(r.telefone || "").replace(/\D+/g, "");
+      },
+      columns: [
+        { title: "Nome", text: function (r) { return r.nome || ""; }, html: function (r) { return "<strong class=\"table-user-name\">" + escapeHtml(r.nome) + "</strong>"; } },
+        { title: "WhatsApp", text: function (r) { return formatPhone(r.telefone); }, html: function (r) { return r.telefone ? waLink(r.telefone, formatPhone(r.telefone)) : "-"; } },
+        { title: "E-mail", text: function (r) { return r.email || ""; }, html: function (r) { return mailLink(r.email); } },
+        { title: "Observações", text: function (r) { return r.observacoes || ""; }, html: function (r) { return r.observacoes ? "<span class=\"table-note\">" + escapeHtml(r.observacoes) + "</span>" : "-"; } },
+        { title: "Cadastrado por", text: function (r) { return r.colaborador || ""; } },
+        { title: "Data do Cadastro", text: function (r) { return formatDate(r.criado_em || r.recebido_em); } }
+      ]
+    }
+  };
+
+  function applyTab() {
+    var tab = TABS[currentTab];
+    var set = function (id, text) {
+      var el = document.getElementById(id);
+      if (el) el.textContent = text;
+    };
+    set("nav-subtitle", tab.subtitle);
+    set("stat-label", tab.statLabel);
+    set("print-total-label", tab.printLabel);
+    set("empty-text", tab.emptyText);
+    set("delete-what", tab.deleteWhat);
+    if (searchInput) {
+      searchInput.placeholder = tab.searchPlaceholder;
+      searchInput.value = "";
+    }
+    var table = document.getElementById("data-table");
+    if (table) table.className = "data-table data-table--" + currentTab;
+    var head = document.getElementById("table-head");
+    if (head) {
+      head.innerHTML =
+        "<th style=\"width: 44px;\">#</th>" +
+        tab.columns.map(function (c) { return "<th>" + escapeHtml(c.title) + "</th>"; }).join("") +
+        "<th style=\"width: 90px; text-align: center;\">Ações</th>";
+    }
+    Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (btn) {
+      var active = btn.getAttribute("data-tab") === currentTab;
+      btn.classList.toggle("is-active", active);
+      btn.setAttribute("aria-selected", active ? "true" : "false");
+    });
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (btn) {
+    btn.addEventListener("click", function () {
+      var next = btn.getAttribute("data-tab");
+      if (next === currentTab || !TABS[next]) return;
+      currentTab = next;
+      allRecords = [];
+      applyTab();
+      renderTable([]);
+      loadData();
+    });
+  });
 
   async function callRpc(fnName, params) {
     var res = await fetch(SUPABASE_URL + "/rest/v1/rpc/" + fnName, {
@@ -133,30 +281,18 @@
 
     if (emptyState) emptyState.hidden = true;
 
+    var columns = TABS[currentTab].columns;
     records.forEach(function (item, index) {
       var tr = document.createElement("tr");
-
-      var rawPhoneDigits = String(item.telefone_numeros || item.telefone || "").replace(/\D+/g, "");
-      var waUrl = rawPhoneDigits
-        ? "https://wa.me/55" + rawPhoneDigits
-        : "#";
-
       tr.innerHTML =
         "<td>" + (index + 1) + "</td>" +
-        "<td><strong class=\"table-user-name\">" + escapeHtml(item.nome) + "</strong></td>" +
+        columns
+          .map(function (c) {
+            return "<td>" + (c.html ? c.html(item) : escapeHtml(c.text(item) || "-")) + "</td>";
+          })
+          .join("") +
         "<td>" +
-          (rawPhoneDigits
-            ? "<a class=\"table-link\" href=\"" + waUrl + "\" target=\"_blank\" rel=\"noopener noreferrer\" title=\"Abrir no WhatsApp\">" +
-                escapeHtml(item.telefone) +
-                "<span class=\"wa-badge\">↗ WA</span>" +
-              "</a>"
-            : escapeHtml(item.telefone)) +
-        "</td>" +
-        "<td><a class=\"table-link\" href=\"mailto:" + escapeHtml(item.email) + "\">" + escapeHtml(item.email) + "</a></td>" +
-        "<td>" + escapeHtml(item.cpf || "-") + "</td>" +
-        "<td>" + formatDate(item.created_at) + "</td>" +
-        "<td>" +
-          "<button type=\"button\" class=\"btn-delete\" data-id=\"" + item.id + "\" data-nome=\"" + escapeHtml(item.nome) + "\">" +
+          "<button type=\"button\" class=\"btn-delete\" data-id=\"" + escapeHtml(item.id) + "\" data-nome=\"" + escapeHtml(item.nome) + "\">" +
             "Excluir" +
           "</button>" +
         "</td>";
@@ -173,20 +309,11 @@
     }
 
     var cleanDigits = term.replace(/\D+/g, "");
+    var tab = TABS[currentTab];
     var filtered = allRecords.filter(function (r) {
-      var nome = String(r.nome || "").toLowerCase();
-      var email = String(r.email || "").toLowerCase();
-      var tel = String(r.telefone || "").toLowerCase();
-      var cpf = String(r.cpf || "").toLowerCase();
-      var telNum = String(r.telefone_numeros || "");
-      var cpfNum = String(r.cpf_numeros || "");
-
       return (
-        nome.indexOf(term) !== -1 ||
-        email.indexOf(term) !== -1 ||
-        tel.indexOf(term) !== -1 ||
-        cpf.indexOf(term) !== -1 ||
-        (cleanDigits && (telNum.indexOf(cleanDigits) !== -1 || cpfNum.indexOf(cleanDigits) !== -1))
+        tab.searchText(r).toLowerCase().indexOf(term) !== -1 ||
+        (cleanDigits && tab.searchDigits(r).indexOf(cleanDigits) !== -1)
       );
     });
 
@@ -202,18 +329,25 @@
 
     if (refreshBtn) refreshBtn.disabled = true;
 
+    var tabAtLoad = currentTab;
     try {
-      var res = await callRpc("admin_list_confirmacoes", { p_token: token });
-      if (!res.ok) {
-        throw new Error(res.error || "Sessão expirada.");
-      }
-
-      allRecords = res.data || [];
+      var data = await TABS[tabAtLoad].load(token);
+      if (tabAtLoad !== currentTab) return; // trocou de aba enquanto carregava
+      allRecords = data;
       filterRecords();
       showDashboard();
     } catch (err) {
-      clearSession();
-      showLogin(err.message || "Sua sessão expirou. Faça login novamente.");
+      if (tabAtLoad !== currentTab) return;
+      if (tabAtLoad === "offshore" || /sess[ãa]o/i.test(err.message || "")) {
+        clearSession();
+        showLogin(err.message || "Sua sessão expirou. Faça login novamente.");
+      } else {
+        // Falha só da lista da Gym Club: mantém o login e avisa.
+        allRecords = [];
+        renderTable([]);
+        showDashboard();
+        alert("Não foi possível carregar os cadastros da Gym Club: " + (err.message || "erro inesperado"));
+      }
     } finally {
       if (refreshBtn) refreshBtn.disabled = false;
     }
@@ -360,14 +494,7 @@
       deleteConfirmBtn.textContent = "Excluindo...";
 
       try {
-        var res = await callRpc("admin_delete_confirmacao", {
-          p_token: token,
-          p_id: pendingDeleteId
-        });
-
-        if (!res.ok) {
-          throw new Error(res.error || "Erro ao excluir registro.");
-        }
+        await TABS[currentTab].remove(token, pendingDeleteId);
 
         if (deleteModal) deleteModal.hidden = true;
         pendingDeleteId = null;
@@ -391,24 +518,20 @@
       return;
     }
 
-    var headers = ["Nome Completo", "Telefone / WhatsApp", "E-mail", "CPF", "Data de Confirmação"];
-    var rows = [headers];
+    var columns = TABS[currentTab].columns;
+    var rows = [columns.map(function (c) { return c.title; })];
 
     dataToExport.forEach(function (item) {
-      rows.push([
-        item.nome || "",
-        item.telefone || "",
-        item.email || "",
-        item.cpf || "",
-        formatDate(item.created_at)
-      ]);
+      rows.push(columns.map(function (c) { return c.text(item); }));
     });
 
     var csvContent = "\uFEFF"; // UTF-8 BOM para abrir com acentuação correta no Excel Brasil
     rows.forEach(function (row) {
       var line = row
         .map(function (val) {
-          var clean = String(val).replace(/"/g, '""');
+          var clean = String(val == null ? "" : val).replace(/"/g, '""');
+          // Texto digitado por terceiros não pode virar fórmula ao abrir no Excel.
+          if (/^[=+\-@\t\r]/.test(clean)) clean = "'" + clean;
           return '"' + clean + '"';
         })
         .join(";");
@@ -420,7 +543,7 @@
     var a = document.createElement("a");
     var nowStr = new Date().toISOString().slice(0, 10);
     a.href = url;
-    a.download = "confirmacoes-evento-offshore-" + nowStr + ".csv";
+    a.download = TABS[currentTab].csvName + "-" + nowStr + ".csv";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -458,6 +581,7 @@
   }
 
   // Inicialização
+  applyTab();
   if (getSessionToken()) {
     loadData();
   } else {

@@ -6,10 +6,10 @@
   <meta name="theme-color" content="#081421" />
   <meta name="robots" content="noindex, nofollow, noarchive" />
 
-  <title>Painel de Confirmações — Evento Offshore Cais</title>
+  <title>Painel de Eventos — Cais Investimentos</title>
 
-  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg" />
-  <link rel="stylesheet" href="./styles.css?v=3" />
+  <link rel="icon" type="image/svg+xml" href="/evento-offshore/assets/favicon.svg" />
+  <link rel="stylesheet" href="./styles.css?v=4" />
 </head>
 <body>
 
@@ -75,13 +75,13 @@
         </div>
         <div class="nav-title-group">
           <h1>Painel de Confirmações</h1>
-          <p>Evento Offshore · Cais Investimentos</p>
+          <p id="nav-subtitle">Evento Offshore · Cais Investimentos</p>
         </div>
       </div>
 
       <div class="print-meta" aria-hidden="true">
         <p id="print-timestamp"></p>
-        <p>Total: <strong id="print-total-count">0</strong> convidados confirmados</p>
+        <p>Total: <strong id="print-total-count">0</strong> <span id="print-total-label">convidados confirmados</span></p>
       </div>
 
       <div class="nav-actions">
@@ -96,10 +96,16 @@
       </div>
     </header>
 
+    <!-- Abas: uma lista por evento -->
+    <nav class="tabs" role="tablist" aria-label="Eventos">
+      <button type="button" class="tab is-active" role="tab" aria-selected="true" data-tab="offshore">Evento Offshore</button>
+      <button type="button" class="tab" role="tab" aria-selected="false" data-tab="gymclub">Gym Club</button>
+    </nav>
+
     <!-- Barra de Estatísticas -->
     <section class="stats-bar">
       <div class="stat-card">
-        <span class="stat-label">Total de Convidados Confirmados</span>
+        <span id="stat-label" class="stat-label">Total de Convidados Confirmados</span>
         <strong id="total-count" class="stat-value">0</strong>
       </div>
     </section>
@@ -154,17 +160,9 @@
     <!-- Tabela de Dados -->
     <div class="table-container">
       <div class="table-responsive">
-        <table class="data-table">
+        <table id="data-table" class="data-table">
           <thead>
-            <tr>
-              <th style="width: 44px;">#</th>
-              <th>Nome Completo</th>
-              <th>Telefone / WhatsApp</th>
-              <th>E-mail</th>
-              <th>CPF</th>
-              <th>Data de Confirmação</th>
-              <th style="width: 90px; text-align: center;">Ações</th>
-            </tr>
+            <tr id="table-head"><!-- Colunas definidas por aba em app.js --></tr>
           </thead>
           <tbody id="table-body">
             <!-- Linhas inseridas dinamicamente via JS -->
@@ -177,7 +175,7 @@
             <line x1="12" y1="8" x2="12" y2="12"></line>
             <line x1="12" y1="16" x2="12.01" y2="16"></line>
           </svg>
-          <p>Nenhuma confirmação encontrada.</p>
+          <p id="empty-text">Nenhuma confirmação encontrada.</p>
         </div>
       </div>
     </div>
@@ -190,9 +188,9 @@
         <h3 id="modal-title">Confirmar exclusão</h3>
       </div>
       <div class="modal-body">
-        <p>Tem certeza de que deseja remover a confirmação de <strong id="delete-guest-name"></strong>?</p>
+        <p>Tem certeza de que deseja remover <span id="delete-what">a confirmação</span> de <strong id="delete-guest-name"></strong>?</p>
         <p style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 8px;">
-          Esta ação removerá o registro da contagem e da lista de confirmados do evento.
+          Esta ação removerá o registro da contagem e da lista deste evento.
         </p>
       </div>
       <div class="modal-actions">
@@ -202,6 +200,6 @@
     </div>
   </div>
 
-  <script src="./app.js?v=3"></script>
+  <script src="./app.js?v=4"></script>
 </body>
 </html>

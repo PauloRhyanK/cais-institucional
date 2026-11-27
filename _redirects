@@ -1,2 +1,5 @@
 # Links de captação: /planejamento/r/{codigo} serve a página sem mudar a URL (o código é lido no navegador e revalidado no backend).
 /planejamento/r/*  /planejamento/  200
+# Painel de eventos: endereço antigo leva ao novo.
+/evento-offshore/admin  /eventos/admin/  302
+/evento-offshore/admin/*  /eventos/admin/  302
