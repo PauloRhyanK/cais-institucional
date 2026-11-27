@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#081421" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="format-detection" content="telephone=no" />
+  <title>Captação na Gym Club — Cais Investimentos</title>
+  <link rel="icon" type="image/svg+xml" href="/planejamento/assets/favicon.svg" />
+  <link rel="preload" href="/planejamento/fonts/GeneralSans-Regular.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="/gymclub/styles.css" />
+</head>
+<body>
+  <div class="moldura">
+    <header class="topo">
+      <img class="marca" src="/planejamento/assets/logo-cais.svg" alt="Cais Investimentos" />
+      <img class="parceiro" src="/gymclub/assets/logo-gymclub.png" alt="Gym Club Sports" width="240" height="240" />
+    </header>
+
+    <main>
+      <noscript><p class="aviso aviso-erro">Para cadastrar, ative o JavaScript do navegador.</p></noscript>
+
+      <!-- Entrada: só o nome de quem está cadastrando (fica guardado no aparelho) -->
+      <section id="entrada" hidden>
+        <h1 class="titulo">Captação na Gym Club</h1>
+        <p class="situacao">Antes de começar, diga quem está cadastrando.</p>
+        <form id="form-entrada" novalidate>
+          <div class="campo">
+            <label for="colaborador">Seu nome</label>
+            <input id="colaborador" type="text" autocomplete="name" autocapitalize="words" autocorrect="off"
+              spellcheck="false" enterkeyhint="go" maxlength="120" placeholder="Nome e sobrenome" aria-describedby="erro-colaborador" />
+            <p class="erro" id="erro-colaborador"></p>
+          </div>
+          <button type="submit" class="botao">Entrar</button>
+        </form>
+      </section>
+
+      <!-- Cadastro: dados de terceiros, por isso sem preenchimento automático do aparelho -->
+      <section id="cadastro" hidden>
+        <h1 class="titulo">Captação na Gym Club</h1>
+        <p class="situacao">
+          Cadastrando como <strong id="quem"></strong> ·
+          <button type="button" class="trocar" id="trocar">trocar</button>
+        </p>
+        <p class="situacao" id="situacao" aria-live="polite"></p>
+
+        <p class="aviso aviso-ok" id="salvo" role="status" hidden></p>
+        <p class="aviso aviso-erro" id="recusados" role="alert" hidden></p>
+
+        <form id="form" novalidate autocomplete="off">
+          <div class="campo">
+            <label for="c-pessoa">Nome</label>
+            <input id="c-pessoa" name="c-pessoa" type="text" autocomplete="off" autocapitalize="words" autocorrect="off"
+              spellcheck="false" enterkeyhint="next" maxlength="120" placeholder="Nome e sobrenome"
+              data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" aria-describedby="erro-c-pessoa" />
+            <p class="erro" id="erro-c-pessoa"></p>
+          </div>
+
+          <div class="campo">
+            <label for="c-zap">WhatsApp <span class="dica">com DDD</span></label>
+            <input id="c-zap" name="c-zap" type="text" inputmode="numeric" autocomplete="off" autocorrect="off"
+              spellcheck="false" enterkeyhint="next" maxlength="20" placeholder="(27) 99999-8888"
+              data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" aria-describedby="erro-c-zap" />
+            <p class="erro" id="erro-c-zap"></p>
+          </div>
+
+          <div class="campo">
+            <label for="c-correio">E-mail <span class="dica">se não tiver WhatsApp, ou os dois</span></label>
+            <input id="c-correio" name="c-correio" type="text" inputmode="email" autocomplete="off" autocapitalize="none"
+              autocorrect="off" spellcheck="false" enterkeyhint="next" maxlength="254" placeholder="nome@exemplo.com"
+              data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" aria-describedby="erro-c-correio" />
+            <div class="atalhos" id="atalhos" aria-label="Completar o e-mail">
+              <button type="button" data-dominio="gmail.com">@gmail.com</button>
+              <button type="button" data-dominio="hotmail.com">@hotmail.com</button>
+              <button type="button" data-dominio="outlook.com">@outlook.com</button>
+              <button type="button" data-dominio="icloud.com">@icloud.com</button>
+            </div>
+            <p class="erro" id="erro-c-correio"></p>
+          </div>
+
+          <div class="campo">
+            <label for="c-obs">Observações <span class="dica">opcional</span></label>
+            <textarea id="c-obs" name="c-obs" rows="3" maxlength="1000" autocomplete="off"
+              data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other"
+              placeholder="Interesse, melhor horário, quem indicou…"></textarea>
+          </div>
+
+          <button type="submit" class="botao">Salvar cadastro</button>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <script src="/planejamento/vendor/libphonenumber-min.js" defer></script>
+  <script src="/planejamento/js/nucleo.js" defer></script>
+  <script src="/gymclub/app.js" defer></script>
+</body>
+</html>

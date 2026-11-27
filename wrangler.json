@@ -7,15 +7,30 @@
     "directory": ".",
     "binding": "ASSETS",
     "run_worker_first": [
-      "/planejamento/api/*"
+      "/planejamento/api/*",
+      "/gymclub/api/*"
     ]
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "cais-captacao"
+    }
+  ],
   "ratelimits": [
     {
       "name": "LIMITE_ENVIOS",
       "namespace_id": "4101",
       "simple": {
         "limit": 10,
+        "period": 60
+      }
+    },
+    {
+      "name": "LIMITE_CADASTROS",
+      "namespace_id": "4102",
+      "simple": {
+        "limit": 120,
         "period": 60
       }
     }
